@@ -20,7 +20,10 @@ from util.framework.components.interactor import InteractorComponent, Interactor
 from util.framework.components.meta_state import MetaStateComponent, MetaState
 from util.framework.components.run import RunComponent
 from util.framework.components.state import StateComponent, State
-
+from util.framework.components.input import InputComponent, MouseComponent
+from util.framework.components.window import WindowComponent
+from util.framework.components.game import GameComponent
+from util.framework.components.mgl import MGLComponent
 
 world = World()
 elems = world
@@ -32,6 +35,5 @@ def initialize():
     world.add_system(ButtonSystem())
     world.add_system(CameraSystem())
     return world
-
 
 from util.framework.legacy.elements import ElementSingleton, Element
