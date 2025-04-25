@@ -1,6 +1,5 @@
 from util.framework.core.component import Component
 
-
 class State:
     def __init__(self):
         self.world = None

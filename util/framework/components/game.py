@@ -18,10 +18,11 @@ class GameComponent(Component):
     def game_update(self):
         pass
 
-    def run(self):
+    async def run(self):
         self.load()
         while True:
-            self.game_update()
+            await self.game_update()
+            await asyncio.sleep(0)
 
     @staticmethod
     def quit(self):

@@ -1,0 +1,5 @@
+{
+	"quit": ["button", 27],
+	"click": ["mouse", 1],
+	"action": ["button", 101]
+}

@@ -1,8 +1,6 @@
-import pygame
 from util.framework.core.component import Component
 from .mgl import MGLComponent
 from .window import WindowComponent
-
 
 class RenderComponent(Component):
     def __init__(self):

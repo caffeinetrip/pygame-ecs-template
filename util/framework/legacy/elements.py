@@ -1,5 +1,3 @@
-import sys
-
 class ElementSingleton:
     _dynamic_component = True
 

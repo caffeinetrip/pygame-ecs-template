@@ -1,8 +1,4 @@
-import time
-import pygame
-from util.framework import world
 from util.framework.components.window import WindowComponent
-
 
 class Window:
     def __init__(self, dimensions=(640, 480), caption='window', flags=0, fps_cap=60, dt_cap=1, opengl=False,
@@ -242,19 +238,13 @@ class Window:
     def fps(self):
         return self.window_component.fps
 
-    def start_transition(self):
-        self.window_component.start_transition()
+    def start_transition(self, alternative=False):
+        self.window_component.start_transition(alternative)
 
-    def update_transition(self):
-        self.window_component.update_transition()
+    def update_transition(self, alternative=False):
+        self.window_component.update_transition(alternative)
 
-    def e_start_transition(self):
-        self.window_component.e_start_transition()
-
-    def e_update_transition(self):
-        self.window_component.e_update_transition()
-
-    def cycle(self, uniforms={}):
+    def cycle(self, uniforms):
         self.window_component.cycle(uniforms)
 
     def delete(self):

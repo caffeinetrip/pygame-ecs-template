@@ -1,9 +1,5 @@
-import sys
-import time
-import pygame
-from util.framework import world
+import asyncio
 from util.framework.components.input import InputComponent, MouseComponent
-
 
 class Mouse:
     def __init__(self):
@@ -39,8 +35,8 @@ class Mouse:
     def movement(self, value):
         self.mouse_component.movement = value
 
-    def update(self):
-        self.mouse_component.update()
+    async def update(self):
+        await self.mouse_component.update()
 
     def delete(self):
         self.entity.delete()
@@ -57,6 +53,7 @@ class Input:
         self.input_component = self.entity.add_component(InputComponent, path)
         self.input_component.initialize()
         self.mouse = Mouse()
+        self.processing_task = None
 
     @property
     def state(self):
@@ -161,8 +158,25 @@ class Input:
     def set_text_buffer(self, text_buffer=None):
         self.input_component.set_text_buffer(text_buffer)
 
-    def update(self):
-        self.input_component.update()
+    def register_handler(self, action, handler, priority=0):
+        self.input_component.register_handler(action, handler, priority)
+
+    async def update(self):
+        await self.input_component.update()
+
+    async def start_processing(self):
+        loop = asyncio.get_event_loop()
+        self.processing_task = loop.create_task(self.input_component.process_actions())
+        return self.processing_task
+
+    async def stop_processing(self):
+        if self.processing_task:
+            self.processing_task.cancel()
+            try:
+                await self.processing_task
+            except asyncio.CancelledError:
+                pass
+            self.processing_task = None
 
     def delete(self):
         self.entity.delete()

@@ -1,7 +1,7 @@
 import time
 import pygame
+import asyncio
 from util.framework.core.component import Component
-
 
 class WindowComponent(Component):
     def __init__(self, dimensions=(640, 480), caption='pygpen window', flags=0, fps_cap=60, dt_cap=1, opengl=False,
@@ -32,12 +32,15 @@ class WindowComponent(Component):
         self.tremor = 0
         self.fight = False
 
+        self.input_comp = None
+
+        self.trans_val = 0
+
         self.transition = 0.0
         self.transition_speed = 0.7
         self.transitioning = False
 
         self.e_transition = 1.0
-        self.e_transition_speed = 0.75
         self.e_transitioning = False
 
         self.open = True
@@ -76,47 +79,48 @@ class WindowComponent(Component):
     def fps(self):
         return len(self.frame_log) / sum(self.frame_log) if self.frame_log else 0
 
-    def start_transition(self):
-        if self.open:
-            self.transition = 0.0
-        else:
-            self.transition = 1.0
-
-        self.transitioning = True
-
-    def update_transition(self):
-        if self.transitioning:
-            self.transition += self.dt * self.transition_speed * (1 if self.open else -1)
+    def start_transition(self, alternative=False):
+        if not alternative:
             if self.open:
-                if self.transition >= 1.0:
-                    self.transition = 1.0
-                    self.transitioning = False
+                self.transition = 0.0
             else:
-                if self.transition <= 0.0:
-                    self.transition = 0.0
-                    self.transitioning = False
+                self.transition = 1.0
 
-    def e_start_transition(self):
-        if self.open:
-            self.e_transition = 0.0
+            self.transitioning = True
         else:
-            self.e_transition = 1.0
-
-        self.e_transitioning = True
-
-    def e_update_transition(self):
-        if self.e_transitioning:
-            self.e_transition += self.dt * self.e_transition_speed * (1 if self.open else -1)
             if self.open:
-                if self.e_transition >= 1.0:
-                    self.e_transition = 1.0
-                    self.e_transitioning = False
+                self.e_transition = 0.0
             else:
-                if self.e_transition <= 0.0:
-                    self.e_transition = 0.0
-                    self.e_transitioning = False
+                self.e_transition = 1.0
 
-    def cycle(self, uniforms={}):
+            self.e_transitioning = True
+
+    def update_transition(self, alternative=False):
+        if self.transitioning or self.e_transitioning:
+            self.trans_val += self.dt * self.transition_speed * (1 if self.open else -1)
+
+            if not alternative:
+                self.transition = self.trans_val
+                if self.open:
+                    if self.transition >= 1.0:
+                        self.transition = 1.0
+                        self.transitioning = False
+                else:
+                    if self.transition <= 0.0:
+                        self.transition = 0.0
+                        self.transitioning = False
+            else:
+                self.e_transition = self.trans_val
+                if self.open:
+                    if self.e_transition >= 1.0:
+                        self.e_transition = 1.0
+                        self.e_transitioning = False
+                else:
+                    if self.e_transition <= 0.0:
+                        self.e_transition = 0.0
+                        self.e_transitioning = False
+
+    def cycle(self, uniforms):
         if self.debug:
             print(f"Window.cycle: OpenGL={self.opengl}, have surfs: {list(uniforms.keys())}")
 
@@ -150,7 +154,6 @@ class WindowComponent(Component):
             self._fallback_render(uniforms)
 
         self.update_transition()
-        self.e_update_transition()
         pygame.display.flip()
 
         self.clock.tick(self.fps_cap)
@@ -171,13 +174,6 @@ class WindowComponent(Component):
                         mgl.ctx.clear(*[self.background_color[i] / 255 for i in range(3)], 1.0)
                     except Exception as e:
                         print(f"ctx clear error: {e}")
-
-        input_entity = self.e["Input"]
-        if input_entity:
-            from util.framework.components.input import InputComponent
-            input_comp = input_entity.get_component(InputComponent)
-            if input_comp:
-                input_comp.update()
 
         self.time = time.time()
         self.frames += 1

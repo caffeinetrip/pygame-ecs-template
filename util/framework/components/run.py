@@ -1,6 +1,5 @@
 from util.framework.core.component import Component
 
-
 class RunComponent(Component):
     def __init__(self):
         super().__init__()

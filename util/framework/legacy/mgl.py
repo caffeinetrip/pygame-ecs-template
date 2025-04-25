@@ -1,13 +1,8 @@
-from array import array
-import moderngl
-import pygame
-from util.framework import world
 from util.framework.components.mgl import MGLComponent, RenderObject as MGLRenderObject
 
-
 class RenderObject:
-    def __init__(self, frag_shader, vert_shader=None, default_ro=False, vao_args=['2f 2f', 'vert', 'texcoord'],
-                 buffer=None):
+    def __init__(self, frag_shader, vert_shader=None, default_ro=False,
+                 vao_args=['2f 2f', 'vert', 'texcoord'], buffer=None):
         from util.framework import world
         self.e = world
         self._name = f"RenderObject_{id(self)}"
@@ -24,12 +19,13 @@ class RenderObject:
             self.render_object = self.mgl_component.default_ro()
         else:
             if isinstance(frag_shader, str) and not frag_shader.startswith("#version"):
-                self.render_object = self.mgl_component.render_object(frag_shader, vert_shader, vao_args, buffer)
+                self.render_object = self.mgl_component.render_object(
+                    frag_shader, vert_shader, vao_args, buffer)
             else:
                 if not vert_shader:
                     vert_shader = self.mgl_component.default_vert
-                self.render_object = MGLRenderObject(frag_shader, vert_shader, default_ro, vao_args, buffer,
-                                                     self.mgl_component)
+                self.render_object = MGLRenderObject(
+                    frag_shader, vert_shader, default_ro, vao_args, buffer, self.mgl_component)
 
     @property
     def default(self):
@@ -108,12 +104,14 @@ class MGL:
         return self.mgl_component.default_frag
 
     @staticmethod
-    def render_object(frag_path, vert_shader=None, vao_args=['2f 2f', 'vert', 'texcoord'], buffer=None):
+    def render_object(frag_path, vert_shader=None,
+                      vao_args=['2f 2f', 'vert', 'texcoord'], buffer=None):
         return RenderObject(frag_path, vert_shader, False, vao_args, buffer)
 
     def default_ro(self):
         render_object = self.mgl_component.default_ro()
-        return RenderObject(render_object.frag_raw, render_object.vert_raw, True, render_object.vao_args)
+        return RenderObject(render_object.frag_raw, render_object.vert_raw,
+                            True, render_object.vao_args)
 
     def pg2tx(self, surf):
         return self.mgl_component.pg2tx(surf)

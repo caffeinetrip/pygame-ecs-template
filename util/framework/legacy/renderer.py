@@ -1,6 +1,4 @@
-from util.framework import world
 from util.framework.components.renderer import RenderComponent
-
 
 class Renderer:
     def __init__(self):
@@ -21,7 +19,7 @@ class Renderer:
     def get_surface(self, name):
         return self.renderer_component.get_surface(name)
 
-    def cycle(self, surfaces={}):
+    def cycle(self, surfaces):
         self.renderer_component.cycle(surfaces)
 
     def delete(self):

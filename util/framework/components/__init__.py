@@ -10,6 +10,9 @@ from util.framework.components.run import RunComponent
 from util.framework.components.state import StateComponent, State
 from util.framework.components.camera import CameraComponent
 from util.framework.components.renderer import RenderComponent
+from util.framework.components.numbers import NumberComponent
+from util.framework.components.window import WindowComponent
+from util.framework.components.input import InputComponent, MouseComponent
 
 __all__ = [
     'ButtonComponent',
@@ -21,5 +24,8 @@ __all__ = [
     'RunComponent',
     'StateComponent', 'State',
     'CameraComponent',
-    'RenderComponent'
+    'RenderComponent',
+    'NumberComponent',
+    'WindowComponent',
+    'InputComponent', 'MouseComponent'
 ]

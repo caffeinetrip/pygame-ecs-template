@@ -1,6 +1,7 @@
 import pygame
 from util.framework.core.system import System
-from util.framework.components.camera import CameraComponent, smooth_approach
+from util.framework.components.camera import CameraComponent
+from util.framework.utils.gfx import smooth_approach
 
 
 class CameraSystem(System):
