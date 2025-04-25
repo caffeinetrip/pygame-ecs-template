@@ -8,6 +8,7 @@ from util.framework.components.interactor import InteractorComponent, Interactor
 from util.framework.components.meta_state import MetaStateComponent, MetaState
 from util.framework.components.run import RunComponent
 from util.framework.components.state import StateComponent, State
+from util.framework.components.camera import CameraComponent
 
 __all__ = [
     'ButtonComponent',
@@ -17,5 +18,6 @@ __all__ = [
     'InteractorComponent', 'Interactor',
     'MetaStateComponent', 'MetaState',
     'RunComponent',
-    'StateComponent', 'State'
+    'StateComponent', 'State',
+    'CameraComponent'
 ]
