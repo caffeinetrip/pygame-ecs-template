@@ -6,7 +6,7 @@ from util.framework.legacy.window import Window
 from util.framework.legacy.input import Input
 from util.framework.legacy.camera import Camera
 from util.framework.legacy import Renderer
-from util.framework.components import NumberComponent
+from util.framework.components import InteractorManager
 from util.framework.utils.yaml import auto_save_all, auto_load_all
 
 WINDOW_SIZE = (1020, 660)
@@ -26,12 +26,11 @@ class Game(GameComponent, metaclass=ABCMeta):
         self.window.frag_path = 'resources/shaders/shader.frag'
         self.window.render_object = self.renderer
 
+        self.im = InteractorManager
+
         self.input = Input('resources/configs/hotkeys.json')
 
-        if 'NumberComponent' in saved_instances:
-            self.number = saved_instances['NumberComponent']
-        else:
-            self.number = NumberComponent()
+        self.number = saved_instances['NumberManager']
 
         self.input.register_handler('action', self._handle_action, priority=0)
 
@@ -53,7 +52,7 @@ class Game(GameComponent, metaclass=ABCMeta):
 
     def cleanup(self):
         auto_save_all({
-            'NumberComponent': self.number
+            'NumberManager': self.number
         })
 
     def reset(self):

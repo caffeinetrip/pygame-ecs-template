@@ -1,11 +1,13 @@
 import asyncio
+import time
 from util.framework.core.component import Component
 from util.framework.utils.yaml import yaml_serializable
 
+
 @yaml_serializable(auto_save=True)
-class NumberComponent(Component):
+class NumberManager(Component):
     def __init__(self, **kwargs):
-        super(NumberComponent, self).__init__(**kwargs)
+        super(NumberManager, self).__init__(**kwargs)
 
         self.max_health = 100
         self.health = self.max_health
@@ -15,23 +17,31 @@ class NumberComponent(Component):
 
         self.damage = 1
         self._is_processing = False
-        self._lock = asyncio.Lock()
+        self._cooldown_coroutine = None
 
     async def add_damage(self):
-        async with self._lock:
-            if self._is_processing:
-                return
+        if self._is_processing or (self._cooldown_coroutine is not None and not self._cooldown_coroutine.done()):
+            return False
 
-            self._is_processing = True
-            try:
-                self._on_spell_use()
+        self._is_processing = True
+        try:
+            if self._on_spell_use():
                 self.damage += 1
-                print(self.damage)
-            finally:
-                self._is_processing = False
+                print(f"Damage increased to: {self.damage}")
+
+                self._cooldown_coroutine = asyncio.create_task(self._action_with_cooldown())
+                return True
+            return False
+        finally:
+            self._is_processing = False
 
     def _on_spell_use(self):
-        if self.mana > 0:
+        if self.mana >= 5:
             self.mana -= 5
+            return True
         else:
-            return
+            return False
+
+    async def _action_with_cooldown(self):
+        await asyncio.sleep(1.0)
+        print("Cooldown end")
