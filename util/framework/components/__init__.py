@@ -4,7 +4,7 @@ from util.framework.components.numbers import NumberManager
 from util.framework.components.window import WindowComponent
 from util.framework.components.input import InputComponent, MouseComponent
 from util.framework.components.mgl import MGLComponent
-
+from util.framework.components.game import Game
 
 __all__ = [
     'CameraComponent',
@@ -12,5 +12,6 @@ __all__ = [
     'MGLComponent',
     'NumberManager',
     'WindowComponent',
-    'InputComponent', 'MouseComponent'
+    'InputComponent', 'MouseComponent',
+    'Game'
 ]

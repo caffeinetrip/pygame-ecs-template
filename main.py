@@ -1,9 +1,6 @@
-from abc import ABCMeta, abstractmethod
-import pygame
-import asyncio
-from util.framework import initialize, Game
-from util.framework.components import WindowComponent, InputComponent, CameraComponent, RenderComponent, MGLComponent
-from util.framework.core import EnhancedInteractorManager
+from util.framework import *
+import example
+from util.framework.core.intManager import InteractorManager
 from util.framework.utils.yaml import auto_save_all, auto_load_all
 
 WINDOW_SIZE = (1020, 660)
@@ -12,23 +9,27 @@ FPS_CAP = 60
 CAMERA_SIZE = (800, 600)
 CAMERA_SLOWNESS = 5
 
-class Main(Game, metaclass=ABCMeta):
+
+class Main(Game):
     def __init__(self):
         super().__init__()
         saved_instances = auto_load_all()
 
-        self.window = self.add_component(WindowComponent, dimensions=WINDOW_SIZE, caption="Template", fps_cap=FPS_CAP, opengl=True)
-        self.camera =  self.add_component(CameraComponent, size=CAMERA_SIZE, pos=(0, 0), slowness=CAMERA_SLOWNESS)
+        self.window = self.add_component(WindowComponent, dimensions=WINDOW_SIZE, caption="Template", fps_cap=FPS_CAP,
+                                         opengl=True)
+        self.camera = self.add_component(CameraComponent, size=CAMERA_SIZE, pos=(0, 0), slowness=CAMERA_SLOWNESS)
         self.renderer = self.add_component(RenderComponent)
         self.mgl = self.add_component(MGLComponent)
         self.input = self.add_component(InputComponent, 'resources/configs/hotkeys.json')
 
-        self.im = EnhancedInteractorManager()
+        self.im = InteractorManager()
+        self.im.e = self
+
+        self.im.add_interactor('NumberManager', saved_instances['NumberManager'])
 
         self.window.frag_path = 'resources/shaders/shader.frag'
         self.window.render_object = self.renderer
 
-        self.number = saved_instances['NumberManager']
         self.input.register_handler('action', self._handle_action, priority=0)
 
         self.background_surface = pygame.Surface(DISPLAY_SIZE, pygame.SRCALPHA)
@@ -40,26 +41,27 @@ class Main(Game, metaclass=ABCMeta):
         self.renderer.add_surface('ui', self.ui_surface)
 
         self.reset()
+
+        self.im.trigger_encounter_start()
         self.input_processing_task = None
 
     async def _handle_action(self):
-        await self.number.add_damage()
+        number_manager = self.im.get_interactor('NumberManager')
+        if number_manager:
+            await number_manager.add_damage()
 
-    # end point game script (save all data)
     def cleanup(self):
-        auto_save_all({
-            'NumberManager': self.number
-        })
+        auto_save_all(self.im.get_all_interactors())
 
     def reset(self):
         self.window.start_transition()
 
-    # game point chek (start or end) -> load/save
     async def run(self):
         try:
             self.input_processing_task = await self.input.start_processing()
             await super().run()
         finally:
+            self.im.trigger_encounter_end()
             self.cleanup()
 
     async def game_update(self):
@@ -69,10 +71,18 @@ class Main(Game, metaclass=ABCMeta):
         self.ui_surface.fill((0, 0, 0, 0))
         self.background_surface.fill((0, 0, 0, 0))
 
-        surface_dict = {'default': self.display_surface, 'ui': self.ui_surface, 'background': self.background_surface}
+        surface_dict = {
+            'default': self.display_surface,
+            'ui': self.ui_surface,
+            'background': self.background_surface
+        }
         self.renderer.cycle(surface_dict)
 
-        window_surfaces = {'surface': self.display_surface, 'bg_surf': self.background_surface, 'ui_surf': self.ui_surface}
+        window_surfaces = {
+            'surface': self.display_surface,
+            'bg_surf': self.background_surface,
+            'ui_surf': self.ui_surface
+        }
         self.window.cycle(window_surfaces)
 
         await self.input.update()
@@ -80,11 +90,15 @@ class Main(Game, metaclass=ABCMeta):
     def _update_gameplay(self):
         self.camera.update()
 
-initialize()
+
+def initialize():
+    pygame.init()
+
 
 if __name__ == "__main__":
-    pygame.init()
+    initialize()
     main = Main()
+
     try:
         asyncio.run(main.run())
     except KeyboardInterrupt:

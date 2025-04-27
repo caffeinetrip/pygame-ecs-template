@@ -2,7 +2,6 @@ import asyncio
 from util.framework.core import Interactor
 from util.framework.utils.yaml import yaml_serializable
 
-
 @yaml_serializable(auto_save=True)
 class NumberManager(Interactor):
     def __init__(self):
@@ -18,7 +17,7 @@ class NumberManager(Interactor):
         self._is_processing = False
         self._cooldown_coroutine = None
 
-    async def add_damage(self):
+    async def _add_damage_func(self):
         if self._is_processing or (self._cooldown_coroutine is not None and not self._cooldown_coroutine.done()):
             return False
 
@@ -28,11 +27,14 @@ class NumberManager(Interactor):
                 self.damage += 1
                 print(f"Damage increased to: {self.damage}")
 
-                self._cooldown_coroutine = asyncio.create_task(self._action_with_cooldown())
-                return True
+                self._cooldown_coroutine = self.start_coroutine(self._action_with_cooldown())
             return False
         finally:
             self._is_processing = False
+            return None
+
+    async def add_damage(self):
+        return await self._add_damage_func()
 
     def _on_spell_use(self):
         if self.mana >= 5:
@@ -41,6 +43,7 @@ class NumberManager(Interactor):
         else:
             return False
 
-    async def _action_with_cooldown(self):
+    @staticmethod
+    async def _action_with_cooldown():
         await asyncio.sleep(1.0)
         print("Cooldown end")
