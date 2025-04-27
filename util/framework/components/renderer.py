@@ -1,6 +1,5 @@
 from util.framework.core.component import Component
-from .mgl import MGLComponent
-from .window import WindowComponent
+
 
 class RenderComponent(Component):
     def __init__(self):
@@ -23,20 +22,16 @@ class RenderComponent(Component):
         for name, surface in surfaces.items():
             self.surfaces[name] = surface
 
-        mgl_entity = self.e["MGL"]
-        if mgl_entity:
-            mgl = mgl_entity.get_component(MGLComponent)
-            if mgl:
-                window_entity = self.e["Window"]
-                if window_entity:
-                    window_comp = window_entity.get_component(WindowComponent)
-                    if window_comp and window_comp.render_object:
-                        window_comp.cycle(surfaces)
-                        return
-
-                render_object = mgl.default_ro()
-                render_object.render(uniforms=surfaces)
+        mgl = self.get_component('MGLComponent')
+        if mgl:
+            window_comp = self.get_component('WindowComponent')
+            if window_comp and window_comp.render_object:
+                window_comp.cycle(surfaces)
                 return
+
+            render_object = mgl.default_ro()
+            render_object.render(uniforms=surfaces)
+            return
 
         if 'default' in self.surfaces:
             main_surface = self.surfaces['default']

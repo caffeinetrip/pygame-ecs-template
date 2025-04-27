@@ -29,7 +29,6 @@ void main() {
 class RenderObject:
     def __init__(self, frag_shader, vert_shader=None, default_ro=False, vao_args=['2f 2f', 'vert', 'texcoord'],
                  buffer=None, mgl_component=None):
-        self.e = mgl_component.entity.e
         self.mgl = mgl_component
 
         if not vert_shader:
@@ -156,7 +155,6 @@ class MGLComponent(Component):
 
     def render_object(self, frag_path, vert_shader=None, vao_args=['2f 2f', 'vert', 'texcoord'], buffer=None):
         if not self.initialized:
-            print("ModernGL not initialized!")
             return None
 
         try:
@@ -165,6 +163,7 @@ class MGLComponent(Component):
                 vert_shader = read_f(vert_shader)
             return RenderObject(frag_shader, vert_shader=vert_shader, vao_args=vao_args, buffer=buffer,
                                 mgl_component=self)
+
         except Exception as e:
             print(f"Create render_object error: {e}")
             return self.default_ro()

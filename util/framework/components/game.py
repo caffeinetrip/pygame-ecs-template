@@ -2,24 +2,18 @@ import sys
 import  asyncio
 import pygame
 from abc import ABC, abstractmethod
-from util.framework.core.component import Component
-from util.framework.components.window import WindowComponent
+from util.framework.core import Entity
 
 
-class GameComponent(Component):
+class Game(Entity, ABC):
     def __init__(self):
         super().__init__()
-
-    @abstractmethod
-    def load(self):
-        pass
 
     @abstractmethod
     def game_update(self):
         pass
 
     async def run(self):
-        self.load()
         while True:
             await self.game_update()
             await asyncio.sleep(0)

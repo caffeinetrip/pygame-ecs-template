@@ -3,7 +3,6 @@ import pygame
 import sys
 from util.framework.core.component import Component
 
-
 class InputState:
     def __init__(self):
         self.pressed = False
@@ -178,16 +177,15 @@ class InputComponent(Component):
         for state in self.input.values():
             state.update()
 
-        mouse_comp = self.e["Mouse"].get_component(MouseComponent)
+        mouse_comp = MouseComponent()
         await mouse_comp.update()
 
         for event in pygame.event.get():
             await self.process_event(event)
 
-        window_entity = self.e["Window"]
-        if window_entity and self.text_buffer:
+        if self.text_buffer:
             from util.framework.components.window import WindowComponent
-            window_time = window_entity.get_component(WindowComponent).time
+            window_time = WindowComponent().time
 
             if self.pressed('__backspace'):
                 self.repeat_times['__backspace'] = window_time

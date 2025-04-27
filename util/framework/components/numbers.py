@@ -1,13 +1,12 @@
 import asyncio
-import time
-from util.framework.core.component import Component
+from util.framework.core import Interactor
 from util.framework.utils.yaml import yaml_serializable
 
 
 @yaml_serializable(auto_save=True)
-class NumberManager(Component):
-    def __init__(self, **kwargs):
-        super(NumberManager, self).__init__(**kwargs)
+class NumberManager(Interactor):
+    def __init__(self):
+        super().__init__()
 
         self.max_health = 100
         self.health = self.max_health

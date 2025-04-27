@@ -1,6 +1,5 @@
 import time
 import pygame
-import asyncio
 from util.framework.core.component import Component
 
 class WindowComponent(Component):
@@ -53,14 +52,8 @@ class WindowComponent(Component):
 
     def initialize_opengl(self):
         if self.opengl and not self.initialized_opengl:
-            from util.framework.components.mgl import MGLComponent
 
-            mgl_entity = self.e["MGL"]
-            if not mgl_entity:
-                mgl_entity = self.e.create_singleton("MGL")
-                mgl_entity.add_component(MGLComponent)
-
-            mgl = mgl_entity.get_component(MGLComponent)
+            mgl = self.get_component('MGLComponent')
 
             if mgl and mgl.initialized:
                 if not self.frag_path:
@@ -162,18 +155,12 @@ class WindowComponent(Component):
         self.frame_log = self.frame_log[-60:]
         self.last_frame = time.time()
 
-        if not self.opengl:
-            self.screen.fill(self.background_color)
-        else:
-            from util.framework.components.mgl import MGLComponent
-            mgl_entity = self.e["MGL"]
-            if mgl_entity:
-                mgl = mgl_entity.get_component(MGLComponent)
-                if mgl and mgl.initialized:
-                    try:
-                        mgl.ctx.clear(*[self.background_color[i] / 255 for i in range(3)], 1.0)
-                    except Exception as e:
-                        print(f"ctx clear error: {e}")
+        mgl = self.get_component('MGLComponent')
+        if mgl and mgl.initialized:
+            try:
+                mgl.ctx.clear(*[self.background_color[i] / 255 for i in range(3)], 1.0)
+            except Exception as e:
+                print(f"ctx clear error: {e}")
 
         self.time = time.time()
         self.frames += 1

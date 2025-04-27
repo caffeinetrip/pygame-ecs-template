@@ -1,0 +1,9 @@
+__class__: NumberManager
+__timestamp__: '2025-04-27T19:58:09.773363'
+damage: 114
+e: null
+entity: null
+health: 100
+mana: 9999999435
+max_health: 100
+max_mana: 10000000000
