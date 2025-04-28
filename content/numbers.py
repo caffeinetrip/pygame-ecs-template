@@ -34,7 +34,9 @@ class NumberManager(Interactor):
             return None
 
     async def add_damage(self):
-        return await self._add_damage_func()
+        if self.enabled:
+            return await self._add_damage_func()
+        return False
 
     def _on_spell_use(self):
         if self.mana >= 5:

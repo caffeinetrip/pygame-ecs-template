@@ -1,9 +1,8 @@
 import sys
-import  asyncio
 import pygame
 from abc import ABC, abstractmethod
 from util.framework.core import Entity
-
+import asyncio
 
 class Game(Entity, ABC):
     def __init__(self):

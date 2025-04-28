@@ -1,7 +1,10 @@
 from util.framework import *
-import example
 from util.framework.core.intManager import InteractorManager
 from util.framework.utils.yaml import auto_save_all, auto_load_all
+
+# import interactors
+from scripts import *
+from content import *
 
 WINDOW_SIZE = (1020, 660)
 DISPLAY_SIZE = (340, 220)
@@ -9,14 +12,12 @@ FPS_CAP = 60
 CAMERA_SIZE = (800, 600)
 CAMERA_SLOWNESS = 5
 
-
 class Main(Game):
     def __init__(self):
         super().__init__()
-        saved_instances = auto_load_all()
+        self.saved_instances = auto_load_all()
 
-        self.window = self.add_component(WindowComponent, dimensions=WINDOW_SIZE, caption="Template", fps_cap=FPS_CAP,
-                                         opengl=True)
+        self.window = self.add_component(WindowComponent, dimensions=WINDOW_SIZE, caption="Template", fps_cap=FPS_CAP,opengl=True)
         self.camera = self.add_component(CameraComponent, size=CAMERA_SIZE, pos=(0, 0), slowness=CAMERA_SLOWNESS)
         self.renderer = self.add_component(RenderComponent)
         self.mgl = self.add_component(MGLComponent)
@@ -25,7 +26,7 @@ class Main(Game):
         self.im = InteractorManager()
         self.im.e = self
 
-        self.im.add_interactor('NumberManager', saved_instances['NumberManager'])
+        self.im.add_interactor('NumberManager', self.saved_instances['NumberManager'])
 
         self.window.frag_path = 'resources/shaders/shader.frag'
         self.window.render_object = self.renderer
@@ -39,16 +40,9 @@ class Main(Game):
         self.renderer.add_surface('background', self.background_surface)
         self.renderer.add_surface('default', self.display_surface)
         self.renderer.add_surface('ui', self.ui_surface)
-
         self.reset()
 
-        self.im.trigger_encounter_start()
         self.input_processing_task = None
-
-    async def _handle_action(self):
-        number_manager = self.im.get_interactor('NumberManager')
-        if number_manager:
-            await number_manager.add_damage()
 
     def cleanup(self):
         auto_save_all(self.im.get_all_interactors())
@@ -59,9 +53,10 @@ class Main(Game):
     async def run(self):
         try:
             self.input_processing_task = await self.input.start_processing()
+            await self.im.trigger_encounter_start()
             await super().run()
         finally:
-            self.im.trigger_encounter_end()
+            await self.im.trigger_encounter_end()
             self.cleanup()
 
     async def game_update(self):
@@ -89,6 +84,11 @@ class Main(Game):
 
     def _update_gameplay(self):
         self.camera.update()
+
+    async def _handle_action(self):
+        number_manager = self.im.get_interactor('NumberManager')
+        if number_manager:
+            await number_manager.add_damage()
 
 
 def initialize():

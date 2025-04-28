@@ -1,4 +1,5 @@
 from util.framework.core.component import Component
+from abc import ABC, abstractmethod
 
 class BaseInteraction:
     def __init__(self):
@@ -15,14 +16,17 @@ class BaseInteraction:
     def enabled(self, value):
         self._enabled = value
 
-class IOnEncounterStart:
-    def on_encounter_start(self, args=None):
+class IOnEncounterStart(ABC):
+    @abstractmethod
+    async def on_encounter_start(self, args=None):
         pass
 
-class IOnEncounterEnd:
-    def on_encounter_end(self, args=None):
+class IOnEncounterEnd(ABC):
+    @abstractmethod
+    async def on_encounter_end(self, args=None):
         pass
 
-class IOnEncounterUpdate:
-    def on_encounter_update(self, args=None):
+class IOnEncounterUpdate(ABC):
+    @abstractmethod
+    async def on_encounter_update(self, args=None):
         pass

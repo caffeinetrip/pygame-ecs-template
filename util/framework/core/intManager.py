@@ -13,16 +13,15 @@ term_colors = {
 }
 
 class OnEncounterStartInt:
-    def __init__(self, debug: bool = True):
+    def __init__(self, debug: bool = False):
         self.debug = debug
 
-    def activate(self, target):
+    async def activate(self, target):
         if hasattr(target, 'on_encounter_start') and callable(target.on_encounter_start):
             if self.debug:
                 print(
                     f"{term_colors['GREEN']}{target.__class__.__name__} interactor successful load{term_colors['RESET']}")
-            target.on_encounter_start()
-        else:
+            await target.on_encounter_start()
             if self.debug:
                 print(
                     f"{term_colors['RED']}Object {target.__class__.__name__} does not implement on_encounter_start{term_colors['RESET']}")
@@ -119,43 +118,43 @@ class InteractorManager(Interactor):
         self._loop.call_soon(self._loop.stop)
         self._loop.run_forever()
 
-    def trigger_encounter_start(self, args=None):
+    async def trigger_encounter_start(self, args=None):
         self._encounter_active = True
 
         for interactor in self._encounter_interactors:
             if interactor.enabled and interactor.state == InteractorState.ACTIVE:
                 interaction = OnEncounterStartInt()
-                interaction.activate(interactor)
+                self.start_coroutine(interaction.activate(interactor))
 
         for interaction in self.start_interactions:
             if interaction.enabled:
                 print(f"\033[92mActivating auto interaction: {interaction.__class__.__name__}\033[0m")
-                interaction.on_encounter_start(args)
+                self.start_coroutine(interaction.on_encounter_start(args))
 
         self.dispatch_event("encounter_start", args)
 
-    def trigger_encounter_end(self, args=None):
+    async def trigger_encounter_end(self, args=None):
         self._encounter_active = False
 
         for interactor in self.interactors.values():
             if (interactor.enabled and interactor.state == InteractorState.ACTIVE and
                     hasattr(interactor, 'on_encounter_end') and callable(interactor.on_encounter_end)):
-                interactor.on_encounter_end(args)
+                self.start_coroutine(interactor.on_encounter_end(args))
 
         for interaction in self.end_interactions:
             if interaction.enabled:
                 print(f"\033[92mActivating auto interaction: {interaction.__class__.__name__}\033[0m")
-                interaction.on_encounter_end(args)
+                self.start_coroutine(interaction.on_encounter_end(args))
 
         self.dispatch_event("encounter_end", args)
 
-    def update_encounter(self, args=None):
+    async def update_encounter(self, args=None):
         if not self._encounter_active:
             return
 
         for interaction in self.update_interactions:
             if interaction.enabled:
-                interaction.on_encounter_update(args)
+                self.start_coroutine(interaction.on_encounter_update(args))
 
         self.dispatch_event("encounter_update", args)
 

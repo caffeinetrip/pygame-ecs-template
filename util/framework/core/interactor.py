@@ -113,10 +113,10 @@ class Interactor(Component):
     def on_disable(self):
         pass
 
-    def on_encounter_start(self, args=None):
+    async def on_encounter_start(self, args=None):
         pass
 
-    def on_encounter_end(self, args=None):
+    async def on_encounter_end(self, args=None):
         pass
 
     def start_coroutine(self, coroutine_func):
