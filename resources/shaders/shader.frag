@@ -4,8 +4,6 @@ uniform sampler2D ui_surf;
 uniform sampler2D bg_surf;
 uniform float time;
 uniform float tremor;
-uniform bool fight;
-uniform float noise_gain;
 uniform float transition = 0.0;
 uniform float e_transition;
 uniform bool overlay = false;
@@ -185,7 +183,7 @@ void main() {
 
     float noise_val = fbm(tex_uv * 2.5 + time * 0.01);
     float static_noise = grain(tex_uv, time * noise_speed);
-    tex.rgb += static_noise * static_noise_intensity * noise_gain;
+    tex.rgb += static_noise * static_noise_intensity;
 
     float gray = toGrayscale(tex.rgb);
     tex.rgb = mix(tex.rgb, vec3(gray), desaturation);
@@ -194,25 +192,9 @@ void main() {
     tex.rgb *= flicker;
     tex.rgb = clamp(tex.rgb * brightness, 0.0, 1.0);
 
-    if (!fight) {
-        tex.rgb *= vignette(tex_uv, time);
-    }
-
-    if (fight) {
-        tex.rgb *= arcade_bars(tex_uv);
-        tex.rgb *= sega_vignette(tex_uv);
-
-        float shadow_dist = 0.002;
-        vec4 shadow_sample = texture(surface, tex_uv + vec2(shadow_dist, shadow_dist));
-        if (shadow_sample.a > 0.01 && src_color.a < 0.5) {
-            tex.rgb = mix(tex.rgb, vec3(0.0, 0.0, 0.0), 0.5);
-        }
-
-        tex.rgb = pow(tex.rgb, vec3(1.1));
-    } else {
-        tex.rgb = mix(tex.rgb, vec3(tex.r, tex.g, tex.b), 0.35);
-        tex.rgb *= 0.9;
-    }
+    tex.rgb *= vignette(tex_uv, time);
+    tex.rgb = mix(tex.rgb, vec3(tex.r, tex.g, tex.b), 0.35);
+    tex.rgb *= 0.9;
 
     if (transition < 1.0) {
         // Apply only darkness based on transition progress (no swirl)

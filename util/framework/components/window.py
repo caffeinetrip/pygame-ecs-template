@@ -29,7 +29,6 @@ class WindowComponent(Component):
         self.last_frame = time.time()
         self.dt = 0.1
         self.tremor = 0
-        self.fight = False
 
         self.input_comp = None
 
@@ -43,7 +42,6 @@ class WindowComponent(Component):
         self.e_transitioning = False
 
         self.open = True
-        self.noise_gain = 1
 
         self.render_object = None
         self.initialized_opengl = False
@@ -129,11 +127,9 @@ class WindowComponent(Component):
 
                 shader_uniforms = uniforms.copy()
                 shader_uniforms['time'] = self.dt
-                shader_uniforms['tremor'] = self.tremor
-                shader_uniforms['fight'] = self.fight
                 shader_uniforms['transition'] = self.transition
                 shader_uniforms['e_transition'] = self.e_transition
-                shader_uniforms['noise_gain'] = self.noise_gain
+                shader_uniforms['tremor'] = self.tremor
 
                 try:
                     self.render_object.render(uniforms=shader_uniforms)
