@@ -1,257 +1,229 @@
-class Entity:
+import pygame
 
-    def __init__(self, entity_id=None, singleton=False, name=None, active=True):
-        self.id = entity_id if entity_id else id(self)
-        self.name = name if name else f"Entity_{self.id}"
-        self._singleton = singleton
-        self.components = {}
-        self.e = self
-        self._parent = None
-        self._children = []
-        self.tags = set()
-        self._active = active
-        self._marked_for_deletion = False
-        self._component_cache = {}
+from util.framework.misc.game_math import normalize
+from .component import Component
+
+OFFSET_N4 = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+class Entity(Component):
+    def __init__(self, pos, z=0):
+        super().__init__()
+        self.type = type
+        self.pos = list(pos)
+        self.z = z
+        self.config = self.e['EntityDB'][self.type].config
+        self.assets = self.e['EntityDB'][self.type].assets
+        self.animations = self.e['EntityDB'][self.type].animations
+        self.action = self.config['default']
+        self.source = 'animations' if self.action in self.animations else 'images'
+        self.animation = None if self.source != 'animations' else self.animations[self.action].copy()
+        self.size = self.config['size']
+
+        self.opacity = 255
+        self.scale = [1, 1]
+        self.rotation = 0
+        self.flip = [False, False]
+        self.visible = True
+
+        # tracks if optimized rendering can be used
+        self.tweaked = False
+
+        self.outline = None
 
     @property
-    def active(self):
-        return self._active
+    def center(self):
+        return self.rect.center
 
-    @active.setter
-    def active(self, value):
-        if self._active != value:
-            self._active = value
+    @property
+    def rect(self):
+        return pygame.Rect(*self.pos, *self.size)
 
-            for component in self.components.values():
-                if hasattr(component, 'enabled'):
-                    component.enabled = value
+    @property
+    def local_offset(self):
+        img_offset = self.config[self.source][self.action]['offset']
+        entity_offset = self.config['offset']
+        return img_offset[0] + entity_offset[0], img_offset[1] + entity_offset[1]
 
-            for child in self._children:
-                child.active = value
+    @property
+    def raw_img(self):
+        if self.source == 'animations':
+            return self.animation.img
+        return self.assets[self.action]
 
-    def add_component(self, component_class, *args, **kwargs):
-        if not isinstance(component_class, type):
-            component = component_class
-            component_class = component.__class__
-        else:
-            component = component_class(*args, **kwargs)
+    @property
+    def img(self):
+        raw_img = self.raw_img
+        img = raw_img
+        base_dimensions = img.get_size()
+        if self.scale != [1, 1]:
+            img = pygame.transform.scale(img, (int(self.scale[0] * base_dimensions[0]),
+                                               int(self.scale[1] * base_dimensions[1])))
+            self.tweaked = True
+        if any(self.flip):
+            img = pygame.transform.flip(img, self.flip[0], self.flip[1])
+        if self.rotation:
+            img = pygame.transform.rotate(img, self.rotation)
+            self.tweaked = True
+        if self.opacity != 255:
+            if img == raw_img:
+                img = img.copy()
+            img.set_alpha(self.opacity)
+        return img
 
-        component.on_attach(self)
-        component_name = component_class.__name__
-
-        if component_name in self.components and not getattr(component_class, '_dynamic_component', False):
-            self.remove_component(component_class)
-
-        self.components[component_name] = component
-
-        self._component_cache = {}
-
-        if self.e and hasattr(self.e, '_index_component'):
-            self.e._index_component(self, component_class)
-
-        if self._active:
-            if hasattr(component, 'awake') and not getattr(component, '_initialized', False):
-                component.awake()
-
-            if hasattr(component, 'start') and not getattr(component, '_started', False):
-                component.start()
-
-        return component
-
-    def get_component(self, component_type):
-        if isinstance(component_type, str):
-            component_name = component_type
-        else:
-            component_name = component_type.__name__
-
-        if component_name in self._component_cache:
-            return self._component_cache[component_name]
-
-        component = self.components.get(component_name)
-        self._component_cache[component_name] = component
-        return component
-
-    def get_components(self, component_type=None):
-        if component_type is None:
-            return list(self.components.values())
-
-        if isinstance(component_type, str):
-            component_name = component_type
-            return [c for c in self.components.values() if c.__class__.__name__ == component_name]
-        else:
-            return [c for c in self.components.values() if isinstance(c, component_type)]
-
-    def has_component(self, component_type):
-        if isinstance(component_type, str):
-            component_name = component_type
-        else:
-            component_name = component_type.__name__
-
-        return component_name in self.components
-
-    def remove_component(self, component_type):
-        if not isinstance(component_type, type) and not isinstance(component_type, str):
-            component = component_type
-            component_type = component.__class__
-            component_name = component_type.__name__
-
-            if self.components.get(component_name) != component:
-                return False
-        else:
-            if isinstance(component_type, str):
-                component_name = component_type
-            else:
-                component_name = component_type.__name__
-
-            if component_name not in self.components:
-                return False
-
-            component = self.components[component_name]
-
-        if hasattr(component, 'on_destroy'):
-            component.on_destroy()
-
-        if hasattr(component, 'on_detach'):
-            component.on_detach()
-
-        if self.e and hasattr(self.e, '_unindex_component'):
-            self.e._unindex_component(self, component_type)
-
-        del self.components[component_name]
-
-        self._component_cache = {}
-
-        return True
-
-    def delete(self):
-        self._marked_for_deletion = True
-
-        for component in list(self.components.values()):
-            self.remove_component(component)
-
-        for child in list(self._children):
-            child.delete()
-
-        if self._parent:
-            self._parent.remove_child(self)
-
-        if self.e and hasattr(self.e, 'delete_entity') and self.e != self:
-            self.e.delete_entity(self)
-
-    def add_tag(self, tag):
-        self.tags.add(tag)
-        if self.e and hasattr(self.e, '_index_tag') and self.e != self:
-            self.e._index_tag(self, tag)
-
-        return self
-
-    def remove_tag(self, tag):
-        if tag in self.tags:
-            self.tags.remove(tag)
-            if self.e and hasattr(self.e, '_unindex_tag') and self.e != self:
-                self.e._unindex_tag(self, tag)
-
-        return self
-
-    def has_tag(self, tag):
-        return tag in self.tags
-
-    def add_child(self, entity):
-        if entity._parent:
-            entity._parent.remove_child(entity)
-
-        entity._parent = self
-        self._children.append(entity)
-
-        if self.e and self.e != self:
-            entity.e = self.e
-
-        return entity
-
-    def remove_child(self, entity):
-        if entity in self._children:
-            entity._parent = None
-            self._children.remove(entity)
-
-            if entity.e == self.e and self.e != self:
-                entity.e = entity
-
-            return True
-        return False
-
-    def get_children(self):
-        return list(self._children)
-
-    def find_child_by_name(self, name):
-        for child in self._children:
-            if child.name == name:
-                return child
-        return None
-
-    def find_children_with_tag(self, tag):
-        return [child for child in self._children if child.has_tag(tag)]
-
-    def get_component_in_children(self, component_type, include_inactive=False):
-        component = self.get_component(component_type)
-        if component:
-            return component
-
-        for child in self._children:
-            if not child.active and not include_inactive:
-                continue
-
-            component = child.get_component_in_children(component_type, include_inactive)
-            if component:
-                return component
-
-        return None
-
-    def get_components_in_children(self, component_type, include_inactive=False):
-        result = self.get_components(component_type)
-
-        for child in self._children:
-            if not child.active and not include_inactive:
-                continue
-
-            child_components = child.get_components_in_children(component_type, include_inactive)
-            result.extend(child_components)
-
-        return result
-
-    def update(self, dt=None):
-        if not self._active:
+    def set_action(self, action, force=False):
+        if not force and (self.action == action):
             return
+        self.action = action
+        self.source = 'animations' if self.action in self.animations else 'images'
+        if self.source == 'animations':
+            self.animation = self.animations[self.action].copy()
 
-        for component in list(self.components.values()):
-            if hasattr(component, 'enabled') and component.enabled and hasattr(component, 'update'):
-                component.update(dt)
+    def topleft(self, offset=(0, 0)):
+        img_size = self.img.get_size()
+        if (not self.tweaked) or self.config['centered']:
+            center_offset = (img_size[0] // 2, img_size[1] // 2) if self.config['centered'] else (0, 0)
+            return (self.pos[0] - offset[0] + self.local_offset[0] - center_offset[0],
+                    self.pos[1] - offset[1] + self.local_offset[1] - center_offset[1])
+        else:
+            raw_img_size = self.raw_img.get_size()
+            size_diff = (img_size[0] - raw_img_size[0], img_size[1] - raw_img_size[1])
+            dynamic_offset = [-size_diff[0] // 2, -size_diff[1] // 2]
+            return (self.pos[0] - offset[0] + self.local_offset[0] + dynamic_offset[0],
+                    self.pos[1] - offset[1] + self.local_offset[1] + dynamic_offset[1])
 
-        for child in list(self._children):
-            if child.active:
-                child.update(dt)
+    def update(self, dt):
+        super().update()
+        if self.source == 'animations':
+            self.animation.update(dt)
 
-    def late_update(self, dt=None):
-        if not self._active:
-            return
+    def render(self, surf, offset=(0, 0)):
+        if self.visible:
+            surf.blit(self.img, self.topleft(offset))
 
-        for component in list(self.components.values()):
-            if hasattr(component, 'enabled') and component.enabled and hasattr(component, 'late_update'):
-                component.late_update(dt)
+    def renderz(self, offset=(0, 0), group='game'):
+        if self.visible:
+            base_pos = self.topleft(offset)
+            if self.outline:
+                silhouette = pygame.mask.from_surface(self.img).to_surface(setcolor=self.outline,
+                                                                           unsetcolor=(0, 0, 0, 0))
+                silhouette.set_alpha(self.opacity)
+                for offset in OFFSET_N4:
+                    self.e['Renderer'].blit(silhouette, (base_pos[0] + offset[0], base_pos[1] + offset[1]),
+                                            z=self.z - 0.000001, group=group)
+            self.e['Renderer'].blit(self.img, base_pos, z=self.z, group=group)
 
-        for child in list(self._children):
-            if child.active:
-                child.late_update(dt)
+class PhysicsEntity(Entity):
+    def __init__(self, pos, z=0):
+        super().__init__(pos, z=z)
+        self.last_pos = (0, 0)
+        self.velocity = [0, 0]
+        self.acceleration = [0, 0]
+        self.velocity_caps = [99999, 99999]
+        self.velocity_normalization = [0, 0]
+        self.next_movement = [0, 0]
+        self.last_movement = (0, 0)
+        self.bounce = 0
+        self.autoflip = 0
+        self.last_collisions = []
+        self.collide_directions = {'up': False, 'down': False, 'right': False, 'left': False}
+        self.dropthrough = 0
+        self.off_colide = False
+        self.setup()
 
-    def broadcast_message(self, message, *args, **kwargs):
-        results = []
+    @property
+    def bounce2d(self):
+        if type(self.bounce) not in {list, tuple}:
+            return self.bounce, self.bounce
+        return tuple(self.bounce)
 
-        for component in list(self.components.values()):
-            if hasattr(component, message) and callable(getattr(component, message)):
-                method = getattr(component, message)
-                results.append(method(*args, **kwargs))
+    def setup(self):
+        pass
 
-        return results
+    def physics_processor(self, movement, tiles):
+        rect = self.rect
+        for tile in tiles:
+            if rect.colliderect(tile.rect) and not self.off_colide:
+                if tile.physics_type == 'solid':
+                    if movement[0] > 0:
+                        rect.right = tile.rect.left
+                        self.velocity[0] *= -self.bounce2d[0]
+                        self.collide_directions['right'] = True
+                    if movement[0] < 0:
+                        rect.left = tile.rect.right
+                        self.velocity[0] *= -self.bounce2d[0]
+                        self.collide_directions['left'] = True
+                    if movement[1] > 0:
+                        rect.bottom = tile.rect.top
+                        self.velocity[1] *= -self.bounce2d[1]
+                        self.collide_directions['down'] = True
+                    if movement[1] < 0:
+                        rect.top = tile.rect.bottom
+                        self.velocity[1] *= -self.bounce2d[1]
+                        self.collide_directions['up'] = True
+                elif tile.physics_type == 'rampr':
+                    if (movement[1] > 0) or (movement[0] > 0):
+                        check_x = (rect.right - tile.rect.left) / tile.rect.width
+                        if 0 <= check_x <= 1:
+                            if rect.bottom > (1 - check_x) * tile.rect.height + tile.rect.top:
+                                rect.bottom = (1 - check_x) * tile.rect.height + tile.rect.top
+                                self.velocity[1] *= -self.bounce2d[1]
+                                self.collide_directions['down'] = True
+                elif tile.physics_type == 'rampl':
+                    if (movement[1] > 0) or (movement[0] < 0):
+                        check_x = (rect.left - tile.rect.left) / tile.rect.width
+                        if 0 <= check_x <= 1:
+                            if rect.bottom > check_x * tile.rect.height + tile.rect.top:
+                                rect.bottom = check_x * tile.rect.height + tile.rect.top
+                                self.velocity[1] *= -self.bounce2d[1]
+                                self.collide_directions['down'] = True
+                elif tile.physics_type == 'dropthrough':
+                    if not self.dropthrough:
+                        if movement[1] > 0:
+                            if (rect.bottom > tile.rect.top) and (rect.bottom - movement[1] <= tile.rect.top + 1):
+                                rect.bottom = tile.rect.top
+                                self.velocity[1] *= -self.bounce2d[1]
+                                self.collide_directions['down'] = True
 
-    def __str__(self):
-        component_str = ", ".join(self.components.keys())
-        return f"{self.name}(id={self.id}, active={self._active}, components=[{component_str}])"
+                if rect.x != self.rect.x:
+                    self.pos[0] = rect.x
+                if rect.y != self.rect.y:
+                    self.pos[1] = rect.y
+                rect = self.rect
+                self.last_collisions.append(tile)
+
+    def custom_update(self):
+        pass
+
+    def physics_update(self, tilemap):
+        dt = self.e['Window'].dt
+        self.custom_update()
+        if self.next_movement[0] * -self.autoflip > 0:
+            self.flip[0] = True
+        if self.next_movement[0] * self.autoflip > 0:
+            self.flip[0] = False
+        self.next_movement[0] += self.velocity[0] * dt
+        self.next_movement[1] += self.velocity[1] * dt
+        self.physics_move(self.next_movement, tilemap)
+        self.last_movement = (self.next_movement[0] / dt, self.next_movement[1] / dt)
+        self.velocity[0] += self.acceleration[0] * dt
+        self.velocity[1] += self.acceleration[1] * dt
+        self.velocity[0] = normalize(self.velocity[0], self.velocity_normalization[0] * dt)
+        self.velocity[1] = normalize(self.velocity[1], self.velocity_normalization[1] * dt)
+        self.velocity[0] = max(-self.velocity_caps[0], min(self.velocity_caps[0], self.velocity[0]))
+        self.velocity[1] = max(-self.velocity_caps[1], min(self.velocity_caps[1], self.velocity[1]))
+        self.next_movement = [0, 0]
+        self.dropthrough = max(0, self.dropthrough - dt)
+
+    def apply_force(self, vec):
+        self.next_movement[0] += vec[0] * self.e['Window'].dt
+        self.next_movement[1] += vec[1] * self.e['Window'].dt
+
+    def physics_move(self, movement, tilemap):
+        self.last_collisions = []
+        self.last_pos = tuple(self.pos)
+        self.collide_directions = {'up': False, 'down': False, 'right': False, 'left': False}
+        self.pos[1] += movement[1]
+        tiles = tilemap.nearby_grid_physics(self.center)
+        self.physics_processor((0, movement[1]), tiles)
+        self.pos[0] += movement[0]
+        tiles = tilemap.nearby_grid_physics(self.center)
+        self.physics_processor((movement[0], 0), tiles)
