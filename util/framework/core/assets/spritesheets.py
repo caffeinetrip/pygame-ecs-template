@@ -2,8 +2,8 @@ import os
 
 import pygame
 
-from ..utils.io import read_tjson, write_tjson
-from ..utils.gfx import clip
+from util.framework.utils.io import read_tjson, write_tjson
+from util.framework.utils.gfx import clip
 from .asset_utils import load_img_directory
 
 def load_spritesheet_config(path):

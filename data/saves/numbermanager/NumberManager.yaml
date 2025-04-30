@@ -1,0 +1,10 @@
+__class__: NumberManager
+__timestamp__: '2025-04-30T13:49:55.988518'
+damage: 48
+e: <util.framework.globals.GlobalManager object at 0x7fe7c14e38c0>
+entity: null
+health: 100
+interactions: []
+mana: 9999999765
+max_health: 100
+max_mana: 10000000000

@@ -1,12 +1,13 @@
 import pygame
-from util.framework.core.system import System
 from util.framework.components.camera import CameraComponent
 from util.framework.utils.gfx import smooth_approach
 
 
-class CameraSystem(System):
+class CameraSystem:
     def __init__(self):
-        super().__init__()
+        self.e = None
+        self.active = True
+
         self.priority = 5
 
     def update(self, dt):

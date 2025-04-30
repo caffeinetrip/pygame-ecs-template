@@ -2,8 +2,8 @@ import inspect
 import asyncio
 
 from util.framework.globals import G
-from util.framework.core.interactor import Interactor, InteractorState
-from util.framework.core.intRegistry import InteractionRegistry
+from util.framework.core.interactors.interactor import Interactor, InteractorState
+from util.framework.core.interactors.intRegistry import InteractionRegistry
 
 term_colors = {
     'RED': '\033[91m',

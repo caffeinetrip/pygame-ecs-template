@@ -1,18 +1,18 @@
 import pygame
-
-from util.framework.misc.game_math import normalize
-from .component import Component
+from util.framework.globals import G
+from util.framework.core.component import Component
 
 OFFSET_N4 = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+
 class Entity(Component):
     def __init__(self, pos, z=0):
         super().__init__()
         self.type = type
         self.pos = list(pos)
         self.z = z
-        self.config = self.e['EntityDB'][self.type].config
-        self.assets = self.e['EntityDB'][self.type].assets
-        self.animations = self.e['EntityDB'][self.type].animations
+        self.config = G.EntityDB[self.type].config
+        self.assets = G.EntityDB[self.type].assets
+        self.animations = G.EntityDB[self.type].animations
         self.action = self.config['default']
         self.source = 'animations' if self.action in self.animations else 'images'
         self.animation = None if self.source != 'animations' else self.animations[self.action].copy()
@@ -107,9 +107,10 @@ class Entity(Component):
                                                                            unsetcolor=(0, 0, 0, 0))
                 silhouette.set_alpha(self.opacity)
                 for offset in OFFSET_N4:
-                    self.e['Renderer'].blit(silhouette, (base_pos[0] + offset[0], base_pos[1] + offset[1]),
-                                            z=self.z - 0.000001, group=group)
-            self.e['Renderer'].blit(self.img, base_pos, z=self.z, group=group)
+                    G.renderer.blit(silhouette, (base_pos[0] + offset[0], base_pos[1] + offset[1]),
+                                    z=self.z - 0.000001, group=group)
+            G.renderer.blit(self.img, base_pos, z=self.z, group=group)
+
 
 class PhysicsEntity(Entity):
     def __init__(self, pos, z=0):
@@ -194,7 +195,7 @@ class PhysicsEntity(Entity):
         pass
 
     def physics_update(self, tilemap):
-        dt = self.e['Window'].dt
+        dt = G.window.dt
         self.custom_update()
         if self.next_movement[0] * -self.autoflip > 0:
             self.flip[0] = True
@@ -214,8 +215,8 @@ class PhysicsEntity(Entity):
         self.dropthrough = max(0, self.dropthrough - dt)
 
     def apply_force(self, vec):
-        self.next_movement[0] += vec[0] * self.e['Window'].dt
-        self.next_movement[1] += vec[1] * self.e['Window'].dt
+        self.next_movement[0] += vec[0] * G.window.dt
+        self.next_movement[1] += vec[1] * G.window.dt
 
     def physics_move(self, movement, tilemap):
         self.last_collisions = []
@@ -227,3 +228,12 @@ class PhysicsEntity(Entity):
         self.pos[0] += movement[0]
         tiles = tilemap.nearby_grid_physics(self.center)
         self.physics_processor((movement[0], 0), tiles)
+
+
+def normalize(value, amount):
+    if abs(value) < amount:
+        return 0
+    elif value > 0:
+        return value - amount
+    else:
+        return value + amount

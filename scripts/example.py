@@ -1,5 +1,5 @@
 
-from util.framework.core.intBase import BaseInteraction, IOnEncounterStart
+from util.framework.core.interactors.intBase import BaseInteraction, IOnEncounterStart
 import asyncio
 
 

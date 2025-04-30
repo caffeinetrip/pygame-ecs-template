@@ -1,4 +1,4 @@
-from ..utils.gfx import palette_swap
+from util.framework.utils.gfx import palette_swap
 
 class Animation:
     def __init__(self, images, config=None, hard_copy=False):

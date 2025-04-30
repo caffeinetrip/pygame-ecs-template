@@ -1,7 +1,7 @@
 import asyncio
 import pygame
 from util.framework.components import *
-from util.framework.core.intManager import InteractorManager
+from util.framework.core.interactors.intManager import InteractorManager
 from util.framework.globals import G
 from util.framework.utils.yaml import auto_save_all, auto_load_all
 
