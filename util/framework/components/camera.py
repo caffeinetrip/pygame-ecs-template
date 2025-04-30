@@ -1,4 +1,5 @@
 import pygame
+from util.framework.globals import G
 from util.framework.core.component import Component
 
 
@@ -47,6 +48,21 @@ class CameraComponent(Component):
     def move(self, movement):
         self.pos[0] += movement[0]
         self.pos[1] += movement[1]
+
+    def update(self):
+        target = self.target
+        if target:
+            if self.tilemap_lock:
+                target_x = max(0, min(target[0], self.tilemap_lock.width * self.tilemap_lock.tile_size - self.size[0]))
+                target_y = max(0, min(target[1], self.tilemap_lock.height * self.tilemap_lock.tile_size - self.size[1]))
+                target = (target_x, target_y)
+
+            self.pos[0] = smooth_approach(self.pos[0], target[0], self.slowness)
+            self.pos[1] = smooth_approach(self.pos[1], target[1], self.slowness)
+
+        self.int_pos = (int(self.pos[0]), int(self.pos[1]))
+        self.rect = pygame.Rect(self.pos[0] - 20, self.pos[1] - 20, self.size[0] + 40, self.size[1] + 40)
+
 
 def smooth_approach(current, target, slowness=10, min_speed=0.1):
     if current == target:

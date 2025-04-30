@@ -1,9 +1,11 @@
+from util.framework.globals import G
+
 class Component:
     _dynamic_component = True
 
     def __init__(self, entity=None):
         self.entity = entity
-        self.e = None
+        self.e = G
         self._enabled = True
         self._initialized = False
         self._started = False
@@ -41,17 +43,11 @@ class Component:
 
     def on_attach(self, entity):
         self.entity = entity
-        self.e = entity
-
-        if entity and entity.active and not self._initialized:
-            self.awake()
-
         return self
 
     def on_detach(self):
         old_entity = self.entity
         self.entity = None
-        self.e = None
         return old_entity
 
     def get_component(self, component_type):
@@ -65,9 +61,13 @@ class Component:
         return []
 
     def add_component(self, component_type, *args, **kwargs):
-        if self.entity:
-            return self.entity.add_component(component_type, *args, **kwargs)
-        return None
+        component = component_type(*args, **kwargs)
+        component.on_attach(self)
+
+        name = component_type.__name__.replace('Component', '').lower()
+        G.register_component(name, component)
+
+        return component
 
     def remove_component(self, component):
         if self.entity:

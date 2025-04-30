@@ -1,6 +1,7 @@
 import asyncio
 from util.framework.core import Interactor
 from util.framework.utils.yaml import yaml_serializable
+from util.framework.globals import G
 
 @yaml_serializable(auto_save=True)
 class NumberManager(Interactor):
@@ -10,7 +11,7 @@ class NumberManager(Interactor):
         self.max_health = 100
         self.health = self.max_health
 
-        self.max_mana = 10*10
+        self.max_mana = 10**10
         self.mana = self.max_mana
 
         self.damage = 1
@@ -35,6 +36,7 @@ class NumberManager(Interactor):
 
     async def add_damage(self):
         if self.enabled:
+            G.window.start_transition()
             return await self._add_damage_func()
         return False
 

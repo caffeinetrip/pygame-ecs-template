@@ -4,7 +4,6 @@ from .intBase import BaseInteraction, IOnEncounterStart, IOnEncounterUpdate, IOn
 
 
 class InteractionRegistry:
-
     @classmethod
     def find_all_interactions(cls, base_type=BaseInteraction):
         interactions = []

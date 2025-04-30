@@ -1,5 +1,6 @@
 import time
 import pygame
+from util.framework.globals import G
 from util.framework.core.component import Component
 
 class WindowComponent(Component):
@@ -50,9 +51,7 @@ class WindowComponent(Component):
 
     def initialize_opengl(self):
         if self.opengl and not self.initialized_opengl:
-
-            mgl = self.get_component('MGLComponent')
-
+            mgl = G.mgl
             if mgl and mgl.initialized:
                 if not self.frag_path:
                     self.render_object = mgl.default_ro()
@@ -77,6 +76,7 @@ class WindowComponent(Component):
             else:
                 self.transition = 1.0
 
+            self.trans_val = self.transition
             self.transitioning = True
         else:
             if self.open:
@@ -84,6 +84,7 @@ class WindowComponent(Component):
             else:
                 self.e_transition = 1.0
 
+            self.trans_val = self.e_transition
             self.e_transitioning = True
 
     def update_transition(self, alternative=False):
@@ -151,7 +152,7 @@ class WindowComponent(Component):
         self.frame_log = self.frame_log[-60:]
         self.last_frame = time.time()
 
-        mgl = self.get_component('MGLComponent')
+        mgl = G.mgl
         if mgl and mgl.initialized:
             try:
                 mgl.ctx.clear(*[self.background_color[i] / 255 for i in range(3)], 1.0)

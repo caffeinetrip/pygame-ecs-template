@@ -1,23 +1,27 @@
-import sys
-import pygame
-from abc import ABC, abstractmethod
-from util.framework.core import Entity
 import asyncio
+import pygame
+from util.framework.globals import G
+from util.framework.core.component import Component
 
-class Game(Entity, ABC):
+
+class Game(Component):
     def __init__(self):
         super().__init__()
+        self.active = True
 
-    @abstractmethod
-    def game_update(self):
-        pass
+        G.initialize()
+        G.register('game', self)
+        self.e = G
 
     async def run(self):
-        while True:
-            await self.game_update()
-            await asyncio.sleep(0)
+        running = True
+        while running and self.active:
+            try:
+                await self.game_update()
+                await asyncio.sleep(0.001)
+            except Exception as e:
+                print(f"Error in game loop: {e}")
+                running = False
 
-    @staticmethod
-    def quit(self):
-        pygame.quit()
-        sys.exit()
+    async def game_update(self):
+        pass

@@ -1,16 +1,16 @@
 import inspect
 import asyncio
 
-from .interactor import InteractorState
-from .intRegistry import InteractionRegistry
-from util.framework.core.component import Component
-from .interactor import Interactor
+from util.framework.globals import G
+from util.framework.core.interactor import Interactor, InteractorState
+from util.framework.core.intRegistry import InteractionRegistry
 
 term_colors = {
     'RED': '\033[91m',
     'GREEN': '\033[92m',
     'RESET': '\033[0m'
 }
+
 
 class OnEncounterStartInt:
     def __init__(self, debug: bool = False):
@@ -45,9 +45,10 @@ class InteractorManager(Interactor):
         self.update_interactions = []
         self._load_auto_interactions()
 
+        G.register_component('im', self)
+
     def _load_auto_interactions(self):
         try:
-            # Load all types of interactions
             self.start_interactions = InteractionRegistry.get_encounter_start_instances()
             self.end_interactions = InteractionRegistry.get_encounter_end_instances()
             self.update_interactions = InteractionRegistry.get_encounter_update_instances()
@@ -67,7 +68,7 @@ class InteractorManager(Interactor):
             interactor = interactor_type
 
         self.interactors[name] = interactor
-        interactor.e = self.e
+        interactor.e = G
         interactor.awake()
         self._pending_start.append(interactor)
 
@@ -76,6 +77,8 @@ class InteractorManager(Interactor):
 
         if hasattr(interactor, 'on_encounter_update') and callable(interactor.on_encounter_update):
             self._encounter_update_interactors.add(interactor)
+
+        G.register_interactor(name, interactor)
 
         return interactor
 

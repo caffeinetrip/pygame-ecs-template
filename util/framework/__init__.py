@@ -1,10 +1,16 @@
-from util.framework.core import *
-from util.framework.systems.camera_system import *
-from util.framework.components import *
+from util.framework.globals import G
+from util.framework.core.component import Component
+from util.framework.core.interactor import Interactor, BaseInteraction
+from util.framework.components.game import Game
+from util.framework.core.intBase import IOnEncounterStart, IOnEncounterEnd, IOnEncounterUpdate
 
-world = World()
-elems = world
-
-def initialize():
-    world.add_system(CameraSystem())
-    return world
+__all__ = [
+    'G',
+    'Component',
+    'Interactor',
+    'BaseInteraction',
+    'Game',
+    'IOnEncounterStart',
+    'IOnEncounterEnd',
+    'IOnEncounterUpdate'
+]

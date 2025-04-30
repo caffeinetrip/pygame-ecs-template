@@ -1,6 +1,7 @@
 from array import array
 import moderngl
 import pygame
+from util.framework.globals import G
 from util.framework.core.component import Component
 from util.framework.utils.io import read_f
 

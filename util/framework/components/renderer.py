@@ -1,3 +1,4 @@
+from util.framework.globals import G
 from util.framework.core.component import Component
 
 
@@ -22,9 +23,9 @@ class RenderComponent(Component):
         for name, surface in surfaces.items():
             self.surfaces[name] = surface
 
-        mgl = self.get_component('MGLComponent')
+        mgl = G.mgl
         if mgl:
-            window_comp = self.get_component('WindowComponent')
+            window_comp = G.window
             if window_comp and window_comp.render_object:
                 window_comp.cycle(surfaces)
                 return
@@ -46,3 +47,7 @@ class RenderComponent(Component):
 
             if 'ui' in self.surfaces:
                 main_surface.blit(self.surfaces['ui'], (0, 0))
+
+    def blit(self, surface, pos, z=0, group='default'):
+        if group in self.surfaces:
+            self.surfaces[group].blit(surface, pos)

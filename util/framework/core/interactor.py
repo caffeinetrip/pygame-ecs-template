@@ -1,9 +1,10 @@
 import inspect
 import asyncio
 from enum import Enum, auto
-from typing import Dict, List, Type, TypeVar
-from util.framework.core.component import Component
+from typing import Dict, List, Type, TypeVar, Any
 
+from util.framework.globals import G
+from util.framework.core.component import Component
 
 class InteractorState(Enum):
     INACTIVE = auto()
@@ -11,16 +12,13 @@ class InteractorState(Enum):
     PAUSED = auto()
     DESTROYED = auto()
 
-
 class PriorityLayers:
     FIRST = -10000
     NORMAL = 0
     LAST = 10000
     LAST_SPECIAL = 10001
 
-
 class BaseInteraction:
-
     def __init__(self):
         self._enabled = True
 
@@ -47,7 +45,6 @@ class BaseInteraction:
         pass
 
 
-# Define type variable for interactions
 T = TypeVar('T', bound=BaseInteraction)
 
 
@@ -61,11 +58,8 @@ class InteractionCache:
             return cls._cache[cache_key]
 
         result = [i for i in interactions if isinstance(i, interaction_type) and i.enabled]
-
         result.sort(key=lambda x: x.priority())
-
         cls._cache[cache_key] = result
-
         return result
 
     @classmethod
@@ -74,11 +68,8 @@ class InteractionCache:
 
 
 class Interactor(Component):
-
     def __init__(self):
         super().__init__()
-        self._enabled = True
-        self._started = False
         self._coroutines = []
         self._loop = asyncio.get_running_loop() if asyncio._get_running_loop() else asyncio.get_event_loop()
         self._state = InteractorState.INACTIVE
@@ -87,30 +78,21 @@ class Interactor(Component):
         self._parent_interactor = None
         self._tag = ""
         self._layer = PriorityLayers.NORMAL
-
         self.interactions = []
-        self.e = None
 
     def awake(self):
+        super().awake()
         self._state = InteractorState.ACTIVE
 
-    def start(self):
-        self._started = True
-
-    def update(self, dt):
-        pass
-
-    def fixed_update(self, fixed_dt):
-        pass
+        name = self.__class__.__name__
+        G.register_interactor(name, self)
 
     def on_destroy(self):
+        super().on_destroy()
         self.stop_all_coroutines()
         self._state = InteractorState.DESTROYED
 
-    def on_enable(self):
-        pass
-
-    def on_disable(self):
+    def fixed_update(self, fixed_dt):
         pass
 
     async def on_encounter_start(self, args=None):
@@ -202,12 +184,6 @@ class Interactor(Component):
             return True
         return False
 
-    def get_component(self, component_type):
-        return self.e.get_component(component_type)
-
-    def get_components(self, component_type):
-        return self.e.get_components(component_type)
-
     def get_component_in_children(self, component_type):
         for child in self._child_interactors:
             component = child.get_component(component_type)
@@ -219,9 +195,6 @@ class Interactor(Component):
         if self._parent_interactor:
             return self._parent_interactor.get_component(component_type)
         return None
-
-    def add_component(self, component_type, *args, **kwargs):
-        return self.e.add_component(component_type, *args, **kwargs)
 
     def add_interaction(self, interaction: BaseInteraction):
         self.interactions.append(interaction)
@@ -237,19 +210,6 @@ class Interactor(Component):
 
     def find_interactions(self, interaction_type: Type[T]) -> List[T]:
         return InteractionCache.find_all(self.interactions, interaction_type)
-
-    @property
-    def enabled(self):
-        return self._enabled
-
-    @enabled.setter
-    def enabled(self, value):
-        if value != self._enabled:
-            self._enabled = value
-            if value:
-                self.on_enable()
-            else:
-                self.on_disable()
 
     @property
     def state(self):
