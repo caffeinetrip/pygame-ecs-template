@@ -53,17 +53,12 @@ class Main(Game):
     def reset(self):
         G.window.start_transition()
 
-    def cleanup(self):
-        print()
-        #auto_save_all(G.data)
-
     async def run(self):
         try:
             await G.im.trigger_encounter_start()
             await super().run()
         finally:
             await G.im.trigger_encounter_end()
-            self.cleanup()
 
     async def game_update(self):
         self._update_gameplay()

@@ -16,8 +16,6 @@ class NumbersEntity(Interactor, CMSEntity):
 
         self.numbers = self.define(NumbersComponent)
 
-        CMS.init()
-
     def awake(self):
         Interactor.awake(self)
         G.register_interactor('Numbers', self)

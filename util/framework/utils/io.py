@@ -26,6 +26,27 @@ def tjson_hook_loose(obj):
                 del obj[key]
     return obj
 
+def tuple_change_keys(obj, convert):
+    if isinstance(obj, (str, int, float)):
+        return obj
+    if isinstance(obj, dict):
+        new = obj.__class__()
+        for k, v in obj.items():
+            new[convert(k)] = tuple_change_keys(v, convert)
+    elif isinstance(obj, (list, set, tuple)):
+        new = obj.__class__(tuple_change_keys(v, convert) for v in obj)
+    else:
+        return obj
+    return new
+
+def tuplestrkey(obj):
+    if type(obj) == tuple:
+        obj = 't\0' + str(obj).replace(' ', '')
+    return obj
+
+def tjson_encode(data):
+    return json.dumps(tuple_change_keys(data, tuplestrkey))
+
 def tjson_decode(data, loose=False):
     if loose:
         return json.loads(data, object_hook=tjson_hook_loose)
@@ -34,6 +55,9 @@ def tjson_decode(data, loose=False):
 
 def read_tjson(path, loose=False):
     return tjson_decode(read_f(path), loose=loose)
+
+def write_tjson(path, data):
+    write_f(path, tjson_encode(data))
 
 def write_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
