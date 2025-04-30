@@ -31,6 +31,7 @@ class Main(Game):
         self.renderer = self.add_component(RenderComponent)
         self.mgl = self.add_component(MGLComponent)
         self.input = self.add_component(InputComponent)
+        self.mouse = self.add_component(MouseComponent)
 
         self.im = InteractorManager()
 

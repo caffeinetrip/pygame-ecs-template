@@ -16,12 +16,8 @@ class Game(Component):
     async def run(self):
         running = True
         while running and self.active:
-            try:
-                await self.game_update()
-                await asyncio.sleep(0.001)
-            except Exception as e:
-                print(f"Error in game loop: {e}")
-                running = False
+            await self.game_update()
+            await asyncio.sleep(0.001)
 
     async def game_update(self):
         pass

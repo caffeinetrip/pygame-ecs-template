@@ -2,10 +2,10 @@ from util.framework.globals import G
 from util.framework.core.component import Component
 from util.framework.utils.assets import load_img_directory
 from util.framework.utils.io import read_tjson
-from util.framework.utils.spritesheets import load_spritesheets
+from util.framework.core.assets.spritesheets import load_spritesheets
 
 
-class Assets(Component):
+class AssetsComponent(Component):
     def __init__(self, spritesheet_path=None, colorkey=(0, 0, 0)):
         super().__init__()
         self.spritesheet_path = spritesheet_path
