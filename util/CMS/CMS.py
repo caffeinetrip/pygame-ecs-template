@@ -19,7 +19,7 @@ class EntityComponentDefinition:
 class CMSEntity:
     def __init__(self, entity_id: str = None):
         self.id = entity_id or self.__class__.__name__
-        self.components: List[EntityComponentDefinition] = []
+        self.cms_components: List[EntityComponentDefinition] = []
 
     def define(self, component_class: Type[T], **kwargs) -> T:
         existing = self.get(component_class)
@@ -27,7 +27,7 @@ class CMSEntity:
             return existing
 
         component = component_class(**kwargs)
-        self.components.append(component)
+        self.cms_components.append(component)
         return component
 
     def is_a(self, component_class: Type[T], out_component: List[T] = None) -> bool:
@@ -37,7 +37,7 @@ class CMSEntity:
         return component is not None
 
     def get(self, component_class: Type[T]) -> Optional[T]:
-        for component in self.components:
+        for component in self.cms_components:
             if isinstance(component, component_class):
                 return component
         return None
@@ -48,7 +48,7 @@ class CMSEntity:
             'components': []
         }
 
-        for component in self.components:
+        for component in self.cms_components:
             if hasattr(component, 'to_dict') and callable(component.to_dict):
                 result['components'].append(component.to_dict())
             else:
@@ -118,9 +118,9 @@ class CMS:
             try:
                 entity = entity_class()
                 cls._entities.add(entity)
-                print(f"Registered entity: {entity.id}")
+                print(f"\033[34mRegistered entity: {entity.id}\033[0m")
             except Exception as e:
-                print(f"Error creating entity {entity_class.__name__}: {e}")
+                print(f"\033[31mError creating entity {entity_class.__name__}: {e}\033[0m")
 
         cls._load_yaml_entities()
 

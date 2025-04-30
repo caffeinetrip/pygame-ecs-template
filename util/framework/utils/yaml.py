@@ -3,6 +3,7 @@ import os
 import datetime
 from typing import Any, Dict, List
 import pygame
+from util.framework import G
 
 _serializable_registry = {}
 _auto_save_classes = []
@@ -13,75 +14,80 @@ DEFAULT_SAVE_PATH = "data/saves"
 def yaml_serializable(cls=None, *, auto_save=True, folder=None):
     def decorator(cls):
         _serializable_registry[cls.__name__] = cls
-
         if auto_save:
             _auto_save_classes.append(cls)
 
         save_folder = os.path.join(DEFAULT_SAVE_PATH, folder or cls.__name__.lower())
+        original_init = cls.__init__
+
+        def new_init(self, *args, **kwargs):
+            original_init(self, *args, **kwargs)
+            if getattr(self, '_loading_from_dict', False):
+                return
+
+            try:
+                filepath = os.path.join(save_folder, f"{cls.__name__}.yaml")
+                if os.path.exists(filepath):
+                    with open(filepath, 'r') as f:
+                        data = yaml.safe_load(f)
+                    if data.get('__class__') == cls.__name__:
+                        for field, value in data.items():
+                            if not field.startswith('__'):
+                                setattr(self, field, _deserialize_value(value))
+            except Exception as e:
+                print(f"Could not load data for {cls.__name__}: {e}")
+
+        cls.__init__ = new_init
 
         def to_dict(self):
             result = {
                 '__class__': self.__class__.__name__,
                 '__timestamp__': datetime.datetime.now().isoformat()
             }
-
             for field in self.__dict__:
                 if not field.startswith('_'):
-                    value = getattr(self, field, None)
-                    result[field] = _serialize_value(value)
-
+                    result[field] = _serialize_value(getattr(self, field, None))
             return result
 
         def to_yaml(self, filepath=None):
             if filepath is None:
                 os.makedirs(save_folder, exist_ok=True)
                 filepath = os.path.join(save_folder, f"{self.__class__.__name__}.yaml")
-
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
             with open(filepath, 'w') as f:
                 yaml.dump(self.to_dict(), f, default_flow_style=False)
-
             return filepath
 
-        @classmethod
-        def from_dict(cls, data):
-            instance = cls.__new__(cls)
-
+        def from_dict(cls_param, data):
+            instance = cls_param.__new__(cls_param)
+            instance._loading_from_dict = True
             try:
                 instance.__init__()
-            except:
-                pass
-
+            except Exception as e:
+                print(f"Error in __init__ during from_dict: {e}")
+            instance._loading_from_dict = False
             for field, value in data.items():
                 if not field.startswith('__'):
                     setattr(instance, field, _deserialize_value(value))
-
             return instance
 
-        @classmethod
-        def from_yaml(cls, filepath=None):
+        def from_yaml(cls_param, filepath=None):
             if filepath is None:
-                filepath = os.path.join(save_folder, f"{cls.__name__}.yaml")
-
+                filepath = os.path.join(save_folder, f"{cls_param.__name__}.yaml")
             if not os.path.exists(filepath):
-                return cls()
-
+                return cls_param()
             with open(filepath, 'r') as f:
                 data = yaml.safe_load(f)
-
-            return cls.from_dict(data)
+            return from_dict(cls_param, data)
 
         cls.to_dict = to_dict
         cls.to_yaml = to_yaml
-        cls.from_dict = from_dict
-        cls.from_yaml = from_yaml
-
+        cls.from_dict = classmethod(from_dict)
+        cls.from_yaml = classmethod(from_yaml)
         return cls
 
-    if cls is None:
-        return decorator
-    return decorator(cls)
+    return decorator if cls is None else decorator(cls)
+
 
 def _serialize_value(value):
     if value is None or isinstance(value, (int, float, str, bool)):
@@ -100,6 +106,7 @@ def _serialize_value(value):
     else:
         return str(value)
 
+
 def _deserialize_value(value):
     if value is None or isinstance(value, (int, float, str, bool)):
         return value
@@ -111,21 +118,26 @@ def _deserialize_value(value):
                 return pygame.Vector2(value['x'], value['y'])
             elif value['__type__'] == 'pygame.Rect':
                 return pygame.Rect(value['x'], value['y'], value['width'], value['height'])
-
         if '__class__' in value and value['__class__'] in _serializable_registry:
             return _serializable_registry[value['__class__']].from_dict(value)
-
         return {k: _deserialize_value(v) for k, v in value.items()}
     else:
         return value
 
-def auto_save_all(instances_dict):
+
+def auto_save_all(instances_dict=None):
+    if instances_dict is None:
+        return
     for class_name, instance in instances_dict.items():
-        instance.to_yaml()
+        if hasattr(instance, 'to_yaml') and callable(instance.to_yaml):
+            instance.to_yaml()
 
 
 def auto_load_all():
     instances = {}
     for cls in _auto_save_classes:
-        instances[cls.__name__] = cls.from_yaml()
+        instance = cls()
+        instances[cls.__name__] = instance
+        if hasattr(G, 'register'):
+            G.register(cls.__name__, instance)
     return instances

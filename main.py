@@ -1,13 +1,15 @@
 import asyncio
 import pygame
+
 from util.framework.components import *
 from util.framework.core.interactors.intManager import InteractorManager
 from util.framework.globals import G
 from util.framework.utils.yaml import auto_save_all, auto_load_all
+from util import CMS, CMSEntity
 
 # import interactors
 from scripts import *
-from content import *
+from content import NumbersEntity
 
 WINDOW_SIZE = (1020, 660)
 DISPLAY_SIZE = (340, 220)
@@ -19,9 +21,12 @@ CAMERA_SLOWNESS = 5
 class Main(Game):
     def __init__(self):
         super().__init__()
-        self.saved_instances = auto_load_all()
 
-        self.window = self.add_component(WindowComponent, dimensions=WINDOW_SIZE, caption="Template", fps_cap=FPS_CAP,opengl=True)
+        data = auto_load_all()
+        G.register('data', data)
+
+        self.window = self.add_component(WindowComponent, dimensions=WINDOW_SIZE, caption="Template", fps_cap=FPS_CAP,
+                                         opengl=True)
         self.camera = self.add_component(CameraComponent, size=CAMERA_SIZE, pos=(0, 0), slowness=CAMERA_SLOWNESS)
         self.renderer = self.add_component(RenderComponent)
         self.mgl = self.add_component(MGLComponent)
@@ -29,7 +34,7 @@ class Main(Game):
 
         self.im = InteractorManager()
 
-        self.im.add_interactor('NumberManager', self.saved_instances['NumberManager'])
+        self.im.add_interactor('NumbersEntity', NumbersEntity)
 
         self.window.frag_path = 'resources/shaders/shader.frag'
         self.window.render_object = self.renderer
@@ -45,11 +50,12 @@ class Main(Game):
 
         self.input_processing_task = None
 
-    def cleanup(self):
-        auto_save_all(G.im.get_all_interactors())
-
     def reset(self):
         G.window.start_transition()
+
+    def cleanup(self):
+        print()
+        #auto_save_all(G.data)
 
     async def run(self):
         try:
@@ -69,18 +75,10 @@ class Main(Game):
         if G.input.pressed(pygame.K_e):
             await self._handle_action()
 
-        surface_dict = {
-            'default': self.display_surface,
-            'ui': self.ui_surface,
-            'background': self.background_surface
-        }
+        surface_dict = {'default': self.display_surface, 'ui': self.ui_surface, 'background': self.background_surface}
         self.renderer.cycle(surface_dict)
 
-        window_surfaces = {
-            'surface': self.display_surface,
-            'bg_surf': self.background_surface,
-            'ui_surf': self.ui_surface
-        }
+        window_surfaces = {'surface': self.display_surface, 'bg_surf': self.background_surface, 'ui_surf': self.ui_surface}
         G.window.cycle(window_surfaces)
 
         await G.input.update()
@@ -89,14 +87,12 @@ class Main(Game):
         G.camera.update()
 
     async def _handle_action(self):
-        number_manager = G.im.get_interactor('NumberManager')
-        if number_manager:
-            await number_manager.add_damage()
-
+        numbers_entity = G.im.get_interactor('NumbersEntity')
+        if numbers_entity:
+            await numbers_entity.add_damage()
 
 def initialize():
     pygame.init()
-
 
 if __name__ == "__main__":
     initialize()
