@@ -1,6 +1,7 @@
 import pygame
 from util.framework.core.interactors.interactor import Interactor
-from .ObjectSectors import ObjectSectors
+from util.framework.core.object.ObjectSectors import ObjectSectors
+from util.framework import G
 
 
 class ObjectCollections(Interactor):
@@ -9,7 +10,6 @@ class ObjectCollections(Interactor):
         self.collections = {}
         self.processing = False
         self.pending_items = []
-
         self.spatial_collections = set(spatial_collections)
         self.object_sectors = ObjectSectors(sector_size=sector_size)
 
@@ -27,8 +27,8 @@ class ObjectCollections(Interactor):
                     self.collections[collection] = []
                 self.collections[collection].append(game_object)
 
-    def process(self, collection=None, release_lock=True, view_area=pygame.Rect(0, 0, 100, 100)):
-        time_delta = self.get_component_in_parent('Window').dt
+    def update(self, collection=None, release_lock=True, view_area=pygame.Rect(0, 0, 100, 100)):
+        time_delta = G.window.dt if hasattr(G, 'window') else 0.016
 
         if len(self.spatial_collections) and not collection:
             self.object_sectors.refresh_visible(view_area)
@@ -45,7 +45,7 @@ class ObjectCollections(Interactor):
                             self.object_sectors.unregister(game_object)
         else:
             for collection in self.collections:
-                self.process(collection, release_lock=False)
+                self.update(collection, release_lock=False)
 
         if release_lock:
             self.processing = False
@@ -54,20 +54,20 @@ class ObjectCollections(Interactor):
                     self.register(*item)
                 self.pending_items = []
 
-    def draw(self, surface, collection=None, camera_offset=(0, 0)):
+    def render(self, surface, collection=None, camera_offset=(0, 0)):
         if collection:
             if collection in self.collections:
                 for game_object in self.collections[collection]:
-                    game_object.draw(surface, camera_offset=camera_offset)
+                    game_object.render(surface, camera_offset=camera_offset)
         else:
             for collection in self.collections:
-                self.draw(surface, collection=collection, camera_offset=camera_offset)
+                self.render(surface, collection=collection, camera_offset=camera_offset)
 
-    def draw_layered(self, collection=None, layer_group='main', camera_offset=(0, 0)):
+    def renderz(self, collection=None, layer_group='main', camera_offset=(0, 0)):
         if collection:
             if collection in self.collections:
                 for game_object in self.collections[collection]:
-                    game_object.draw_layered(group=layer_group, camera_offset=camera_offset)
+                    game_object.renderz(camera_offset=camera_offset, group=layer_group)
         else:
             for collection in self.collections:
-                self.draw_layered(collection=collection, layer_group=layer_group, camera_offset=camera_offset)
+                self.renderz(collection=collection, layer_group=layer_group, camera_offset=camera_offset)

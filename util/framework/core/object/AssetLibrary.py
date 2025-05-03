@@ -1,5 +1,6 @@
 import os
 import pygame
+import json
 
 from ..interactors.interactor import Interactor
 from ...utils import load_img_directory, read_json, write_json
@@ -7,25 +8,43 @@ from ..assets.animation import Animation
 
 
 class ObjectData:
-    def __init__(self, settings, sequences=None):
+    def __init__(self, settings, resources=None):
+        self.specs = settings
         self.settings = settings
-        self.graphics = load_img_directory(self.settings['resource_path'], colorkey=self.settings['transparency'])
+        self.resources = resources or {}
         self.sequences = {}
-        for sequence in self.settings['sequences']:
-            if sequence in self.graphics:
-                first_frame = list(self.graphics[sequence])[0]
-                index_part = first_frame.split('_')[-1]
-                if len(index_part) and index_part.isnumeric():
-                    indexed_frames = [(int(fname.split('_')[-1]), '_'.join(fname.split('_')[:-1])) for fname
-                                      in self.graphics[sequence] if fname.split('_')[-1].isnumeric()]
-                    indexed_frames.sort()
-                    ordered_frames = [frame[1] + ('_' if len(frame[1]) else '') + str(frame[0]) for
-                                      frame in indexed_frames]
-                    sequence_frames = [self.graphics[sequence][fname] for fname in ordered_frames if
-                                       type(self.graphics[sequence][fname]) == pygame.Surface]
+
+        for sequence_name, sequence_config in self.specs.get('sequences', {}).items():
+            sequence_images = []
+
+            sequence_parts = sequence_name.split('/')
+            current_dict = self.resources
+
+            for i, part in enumerate(sequence_parts):
+                if isinstance(current_dict, dict) and part in current_dict:
+                    current_dict = current_dict[part]
                 else:
-                    sequence_frames = [img for img in self.graphics[sequence].values() if type(img) == pygame.Surface]
-                self.sequences[sequence] = Animation(sequence_frames, config=self.settings['sequences'][sequence])
+                    current_dict = None
+                    break
+
+            if current_dict and isinstance(current_dict, dict):
+                sorted_items = []
+                for key, value in current_dict.items():
+                    if isinstance(value, pygame.Surface):
+                        try:
+                            num = int(key.split('_')[-1])
+                            sorted_items.append((num, value))
+                        except ValueError:
+                            sorted_items.append((0, value))
+
+                sorted_items.sort(key=lambda x: x[0])
+                sequence_images = [item[1] for item in sorted_items]
+
+            if sequence_images:
+                self.sequences[sequence_name] = Animation(
+                    sequence_images,
+                    config=sequence_config
+                )
 
 
 class AssetLibrary(Interactor):
@@ -41,61 +60,38 @@ class AssetLibrary(Interactor):
         self.build_asset_registry()
 
     def __getitem__(self, key):
-        if key in self.assets:
-            return self.assets[key]
-        else:
-            return None
+        return self.assets.get(key, None)
 
     def build_asset_registry(self):
+        if not os.path.exists(self.directory):
+            return
+
         for object_dir in os.listdir(self.directory):
-            sequences = []
-            static_images = []
+            object_path = os.path.join(self.directory, object_dir)
+            if not os.path.isdir(object_path):
+                continue
 
             settings = {
-                'images': {},
-                'sequences': {},
-                'resource_path': self.directory + '/' + object_dir,
                 'uid': object_dir,
-                'centered': False,
+                'size': [16, 16],
                 'offset': [0, 0],
                 'transparency': [0, 0, 0],
-                'dimensions': [1, 1],
+                'centered': False,
                 'category': 'object',
-                'collisions': [],
-                'initial': None
+                'images': {},
+                'sequences': {},
+                'initial': None,
+                'resource_path': object_path
             }
 
-            for file in os.listdir(self.directory + '/' + object_dir):
-                if file.find('.') == -1:
-                    sequences.append(file)
-                elif file.split('.')[-1] == 'png':
-                    static_images.append(file.split('.')[0])
-                if file == 'config.json':
-                    settings = read_json(self.directory + '/' + object_dir + '/' + file)
+            config_path = os.path.join(object_path, 'config.json')
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, 'r') as f:
+                        loaded_settings = json.load(f)
+                        settings.update(loaded_settings)
+                except Exception as e:
+                    pass
 
-            for img in static_images:
-                if img not in settings['images']:
-                    settings['images'][img] = {'offset': [0, 0]}
-
-            for seq in sequences:
-                if seq not in settings['sequences']:
-                    frames = os.listdir(self.directory + '/' + object_dir + '/' + seq)
-                    settings['sequences'][seq] = {
-                        'offset': [0, 0],
-                        'rate': 1.0,
-                        'repeat': True,
-                        'frozen': False,
-                        'durations': []
-                    }
-                    for frame in frames:
-                        if frame.split('.')[-1] == 'png':
-                            settings['sequences'][seq]['durations'].append(0.1)
-
-            if not settings['initial']:
-                if len(sequences):
-                    settings['initial'] = sequences[0]
-                elif len(static_images):
-                    settings['initial'] = static_images[0]
-
-            write_json(self.directory + '/' + object_dir + '/config.json', settings)
-            self.assets[settings['uid']] = ObjectData(settings)
+            resources = load_img_directory(object_path, colorkey=settings.get('transparency', [0, 0, 0]))
+            self.assets[settings['uid']] = ObjectData(settings, resources)

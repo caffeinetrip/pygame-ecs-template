@@ -4,29 +4,42 @@ from util.framework.core.component import Component
 
 ADJACENT_DIRS = [(1, 0), (0, 1), (-1, 0), (0, -1)]
 
+
 class Object(Component):
     def __init__(self, position, depth=0):
         super().__init__()
-        self.kind = type
+        self.kind = getattr(self, 'kind', type)
         self.position = list(position)
         self.depth = depth
-        self.specs = G.ObjectDB[self.kind].specs
-        self.resources = G.ObjectDB[self.kind].resources
-        self.sequences = G.ObjectDB[self.kind].sequences
-        self.state = self.specs['default']
-        self.source_type = 'sequences' if self.state in self.sequences else 'images'
-        self.sequence = None if self.source_type != 'sequences' else self.sequences[self.state].copy()
-        self.dimensions = self.specs['size']
 
+        asset_data = G.AssetLibrary[self.kind]
+
+        if asset_data is None:
+            raise ValueError(f"No asset data found for kind '{self.kind}'")
+
+        self.specs = asset_data.specs
+        self.resources = asset_data.resources
+        self.sequences = asset_data.sequences
+        self.state = self.specs.get('initial', 'idle/down')
+
+        if self.state in self.sequences:
+            self.source_type = 'sequences'
+            self.sequence = self.sequences[self.state].copy()
+        else:
+            if self.sequences:
+                self.state = list(self.sequences.keys())[0]
+                self.source_type = 'sequences'
+                self.sequence = self.sequences[self.state].copy()
+            else:
+                raise ValueError(f"No sequences found for {self.kind}")
+
+        self.dimensions = self.specs.get('size', [16, 16])
         self.transparency = 255
         self.resize = [1, 1]
         self.angle = 0
         self.mirror = [False, False]
         self.show = True
-
-        # tracks if advanced rendering is needed
         self.modified = False
-
         self.highlight = None
 
     @property
@@ -46,12 +59,17 @@ class Object(Component):
     @property
     def source_image(self):
         if self.source_type == 'sequences':
-            return self.sequence.image
-        return self.resources[self.state]
+            return self.sequence.img
+        return None
 
     @property
     def render_image(self):
         src_img = self.source_image
+        if src_img is None:
+            placeholder = pygame.Surface(self.dimensions)
+            placeholder.fill((255, 0, 255))
+            return placeholder
+
         img = src_img
         orig_size = img.get_size()
         if self.resize != [1, 1]:
@@ -77,39 +95,39 @@ class Object(Component):
         if self.source_type == 'sequences':
             self.sequence = self.sequences[self.state].copy()
 
-    def draw_position(self, camera_shift=(0, 0)):
+    def draw_position(self, camera_offset=(0, 0)):
         img_dims = self.render_image.get_size()
         if (not self.modified) or self.specs['centered']:
             center_shift = (img_dims[0] // 2, img_dims[1] // 2) if self.specs['centered'] else (0, 0)
-            return (self.position[0] - camera_shift[0] + self.offset_coords[0] - center_shift[0],
-                    self.position[1] - camera_shift[1] + self.offset_coords[1] - center_shift[1])
+            return (self.position[0] - camera_offset[0] + self.offset_coords[0] - center_shift[0],
+                    self.position[1] - camera_offset[1] + self.offset_coords[1] - center_shift[1])
         else:
             raw_dims = self.source_image.get_size()
             size_delta = (img_dims[0] - raw_dims[0], img_dims[1] - raw_dims[1])
             auto_shift = [-size_delta[0] // 2, -size_delta[1] // 2]
-            return (self.position[0] - camera_shift[0] + self.offset_coords[0] + auto_shift[0],
-                    self.position[1] - camera_shift[1] + self.offset_coords[1] + auto_shift[1])
+            return (self.position[0] - camera_offset[0] + self.offset_coords[0] + auto_shift[0],
+                    self.position[1] - camera_offset[1] + self.offset_coords[1] + auto_shift[1])
 
     def tick(self, delta):
         super().update()
         if self.source_type == 'sequences':
             self.sequence.update(delta)
 
-    def draw(self, surface, camera_shift=(0, 0)):
+    def draw(self, surface, camera_offset=(0, 0)):
         if self.show:
-            surface.blit(self.render_image, self.draw_position(camera_shift))
+            surface.blit(self.render_image, self.draw_position(camera_offset))
 
-    def draw_layered(self, camera_shift=(0, 0), layer='game'):
+    def renderz(self, camera_offset=(0, 0), group='game'):
         if self.show:
-            pos = self.draw_position(camera_shift)
+            pos = self.draw_position(camera_offset)
             if self.highlight:
                 outline = pygame.mask.from_surface(self.render_image).to_surface(setcolor=self.highlight,
-                                                                           unsetcolor=(0, 0, 0, 0))
+                                                                                 unsetcolor=(0, 0, 0, 0))
                 outline.set_alpha(self.transparency)
                 for shift in ADJACENT_DIRS:
-                    G.renderer.blit(outline, (pos[0] + shift[0], pos[1] + shift[1]),
-                                    z=self.depth - 0.000001, group=layer)
-            G.renderer.blit(self.render_image, pos, z=self.depth, group=layer)
+                    G.render.blit(outline, (pos[0] + shift[0], pos[1] + shift[1]),
+                                  z=self.depth - 0.000001)
+            G.render.blit(self.render_image, pos, z=self.depth)
 
 
 class MovingObject(Object):
@@ -118,6 +136,7 @@ class MovingObject(Object):
         self.prev_pos = (0, 0)
         self.speed = [0, 0]
         self.acceleration = [0, 0]
+        self.size = [16, 16]
         self.max_speed = [99999, 99999]
         self.friction = [0, 0]
         self.delta_move = [0, 0]
@@ -128,6 +147,7 @@ class MovingObject(Object):
         self.collisions = {'up': False, 'down': False, 'right': False, 'left': False}
         self.pass_through = 0
         self.no_collide = False
+        self.walkable_only = False
         self.initialize()
 
     @property
@@ -136,51 +156,87 @@ class MovingObject(Object):
             return self.rebound, self.rebound
         return tuple(self.rebound)
 
+    @property
+    def center(self):
+        return self.rect.center
+
+    @property
+    def rect(self):
+        return pygame.Rect(*self.prev_pos, *self.size)
+
     def initialize(self):
         pass
+
+    def check_walkable_collision(self, new_position, level_map):
+        if not self.walkable_only:
+            return True
+
+        world_width = level_map.dimensions[0] * level_map.tile_size[0]
+        world_height = level_map.dimensions[1] * level_map.tile_size[1]
+
+        if new_position[0] < 0 or new_position[0] + self.size[0] > world_width:
+            return False
+        if new_position[1] < 0 or new_position[1] + self.size[1] > world_height:
+            return False
+
+        corners = [
+            (new_position[0], new_position[1]),
+            (new_position[0] + self.size[0] - 1, new_position[1]),
+            (new_position[0], new_position[1] + self.size[1] - 1),
+            (new_position[0] + self.size[0] - 1, new_position[1] + self.size[1] - 1)
+        ]
+
+        center = (new_position[0] + self.size[0] // 2, new_position[1] + self.size[1] // 2)
+        corners.append(center)
+
+        for corner in corners:
+            if not level_map.is_walkable_world_pos(corner):
+                return False
+
+        return True
 
     def handle_collisions(self, movement, objects):
         box = self.hitbox
         for obj in objects:
-            if box.colliderect(obj.hitbox) and not self.no_collide:
-                if obj.collision_type == 'solid':
+            if box.colliderect(obj.rect) and not self.no_collide:
+                if obj.physics_type == 'solid':
                     if movement[0] > 0:
-                        box.right = obj.hitbox.left
+                        box.right = obj.rect.left
                         self.speed[0] *= -self.rebound_factors[0]
                         self.collisions['right'] = True
                     if movement[0] < 0:
-                        box.left = obj.hitbox.right
+                        box.left = obj.rect.right
                         self.speed[0] *= -self.rebound_factors[0]
                         self.collisions['left'] = True
                     if movement[1] > 0:
-                        box.bottom = obj.hitbox.top
+                        box.bottom = obj.rect.top
                         self.speed[1] *= -self.rebound_factors[1]
                         self.collisions['down'] = True
                     if movement[1] < 0:
-                        box.top = obj.hitbox.bottom
+                        box.top = obj.rect.bottom
                         self.speed[1] *= -self.rebound_factors[1]
                         self.collisions['up'] = True
-                elif obj.collision_type == 'ramp_right':
+                elif obj.physics_type == 'ramp_right':
                     if (movement[1] > 0) or (movement[0] > 0):
-                        check_x = (box.right - obj.hitbox.left) / obj.hitbox.width
+                        check_x = (box.right - obj.rect.left) / obj.rect.width
                         if 0 <= check_x <= 1:
-                            if box.bottom > (1 - check_x) * obj.hitbox.height + obj.hitbox.top:
-                                box.bottom = (1 - check_x) * obj.hitbox.height + obj.hitbox.top
+                            if box.bottom > (1 - check_x) * obj.rect.height + obj.rect.top:
+                                box.bottom = (1 - check_x) * obj.rect.height + obj.rect.top
                                 self.speed[1] *= -self.rebound_factors[1]
                                 self.collisions['down'] = True
-                elif obj.collision_type == 'ramp_left':
+                elif obj.physics_type == 'ramp_left':
                     if (movement[1] > 0) or (movement[0] < 0):
-                        check_x = (box.left - obj.hitbox.left) / obj.hitbox.width
+                        check_x = (box.left - obj.rect.left) / obj.rect.width
                         if 0 <= check_x <= 1:
-                            if box.bottom > check_x * obj.hitbox.height + obj.hitbox.top:
-                                box.bottom = check_x * obj.hitbox.height + obj.hitbox.top
+                            if box.bottom > check_x * obj.rect.height + obj.rect.top:
+                                box.bottom = check_x * obj.rect.height + obj.rect.top
                                 self.speed[1] *= -self.rebound_factors[1]
                                 self.collisions['down'] = True
-                elif obj.collision_type == 'platform':
+                elif obj.physics_type == 'platform':
                     if not self.pass_through:
                         if movement[1] > 0:
-                            if (box.bottom > obj.hitbox.top) and (box.bottom - movement[1] <= obj.hitbox.top + 1):
-                                box.bottom = obj.hitbox.top
+                            if (box.bottom > obj.rect.top) and (box.bottom - movement[1] <= obj.rect.top + 1):
+                                box.bottom = obj.rect.top
                                 self.speed[1] *= -self.rebound_factors[1]
                                 self.collisions['down'] = True
 
@@ -194,7 +250,7 @@ class MovingObject(Object):
     def behavior_update(self):
         pass
 
-    def physics_tick(self, level_map):
+    def physics_update(self, level_map):
         delta = G.window.dt
         self.behavior_update()
         if self.delta_move[0] * -self.auto_mirror > 0:
@@ -222,12 +278,30 @@ class MovingObject(Object):
         self.collision_list = []
         self.prev_pos = tuple(self.position)
         self.collisions = {'up': False, 'down': False, 'right': False, 'left': False}
-        self.position[1] += movement[1]
-        tiles = level_map.nearby_grid_physics(self.middle)
-        self.handle_collisions((0, movement[1]), tiles)
-        self.position[0] += movement[0]
-        tiles = level_map.nearby_grid_physics(self.middle)
-        self.handle_collisions((movement[0], 0), tiles)
+
+        if self.walkable_only:
+            if movement[1] != 0:
+                test_pos_y = [self.position[0], self.position[1] + movement[1]]
+                if self.check_walkable_collision(test_pos_y, level_map):
+                    self.position[1] += movement[1]
+                else:
+                    self.collisions['down' if movement[1] > 0 else 'up'] = True
+                    self.speed[1] = 0
+
+            if movement[0] != 0:
+                test_pos_x = [self.position[0] + movement[0], self.position[1]]
+                if self.check_walkable_collision(test_pos_x, level_map):
+                    self.position[0] += movement[0]
+                else:
+                    self.collisions['right' if movement[0] > 0 else 'left'] = True
+                    self.speed[0] = 0
+        else:
+            self.position[1] += movement[1]
+            tiles = level_map.nearby_grid_physics(self.center)
+            self.handle_collisions((0, movement[1]), tiles)
+            self.position[0] += movement[0]
+            tiles = level_map.nearby_grid_physics(self.center)
+            self.handle_collisions((movement[0], 0), tiles)
 
 
 def apply_friction(value, amount):

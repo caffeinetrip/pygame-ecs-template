@@ -17,26 +17,12 @@ class CameraComponent(Component):
 
     @property
     def target(self):
-        if self.target_entity:
-            return (self.target_entity.center[0] - self.size[0] // 2, self.target_entity.center[1] - self.size[1] // 2)
-        elif self.target_pos:
-            return (self.target_pos[0] - self.size[0] // 2, self.target_pos[1] - self.size[1] // 2)
-        return None
-
-    @property
-    def center(self):
-        return (self.pos[0] + self.size[0] / 2, self.pos[1] + self.size[1] / 2)
+        return (self.target_entity.center[0] - self.size[0] // 2,
+                self.target_entity.center[1] - self.size[1] // 2)
 
     def set_target(self, target):
-        if hasattr(target, 'center'):
-            self.target_entity = target
-            self.target_pos = None
-        elif target:
-            self.target_pos = tuple(target)
-            self.target_entity = None
-        else:
-            self.target_pos = None
-            self.target_entity = None
+        self.target_entity = target
+        self.target_pos = None
 
     def __iter__(self):
         for v in self.int_pos:

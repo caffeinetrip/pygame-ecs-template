@@ -6,10 +6,23 @@ from .. import G
 
 BORDERS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (0, 0)]
 
+NON_WALKABLE_TILES = [
+    'water',
+    'lava',
+    'wall',
+    'pit',
+    'spikes',
+    'void',
+    'barrier',
+    'deep_water',
+    'acid',
+    'fire'
+]
+
 
 def basic_tile_render(tile, offset=(0, 0), group='default'):
     G.render.blit(tile.img, (tile.raw_pos[0] + tile.offset[0] - offset[0],
-                                       tile.raw_pos[1] + tile.offset[1] - offset[1]), z=tile.layer, group=group)
+                             tile.raw_pos[1] + tile.offset[1] - offset[1]), z=tile.layer, group=group)
 
 
 class Tile(Component):
@@ -26,6 +39,7 @@ class Tile(Component):
         self.flags = set(self.config['flags'] if 'flags' in self.config else ['solid'])
         self.physics_type = None
         self.custom_data = custom_data
+        self.walkable = True if self.group not in NON_WALKABLE_TILES else False
 
     def render(self, offset=(0, 0), group='default'):
         self.render_func(self, offset=offset, group=group)
@@ -190,6 +204,39 @@ class Tilemap(Component):
 
         return True
 
+    def is_walkable_pos(self, grid_pos, check_layer=None):
+        # Проверяем, находится ли позиция внутри карты
+        if not self.in_map(grid_pos):
+            return False
+
+        # Если на этой позиции нет тайлов, проверяем, является ли она внутри границ карты
+        if grid_pos not in self.grid_tiles:
+            return True  # Пустое место считается проходимым, если оно внутри карты
+
+        tiles = self.grid_tiles[grid_pos]
+
+        if check_layer is not None:
+            if check_layer in tiles:
+                return tiles[check_layer].walkable
+            return True
+        else:
+            # Проверяем все слои, если хотя бы один непроходимый - возвращаем False
+            for tile in tiles.values():
+                if not tile.walkable:
+                    return False
+            return True
+
+    def is_walkable_world_pos(self, world_pos, check_layer=None):
+        grid_pos = (int(world_pos[0] // self.tile_size[0]), int(world_pos[1] // self.tile_size[1]))
+        return self.is_walkable_pos(grid_pos, check_layer)
+
+    def get_walkable_positions_in_rect(self, rect, check_layer=None):
+        walkable_positions = []
+        for loc in self.rect_grid_locs(rect):
+            if self.is_walkable_pos(loc, check_layer):
+                walkable_positions.append(loc)
+        return walkable_positions
+
     def area_masks(self, rect):
         surfs = {}
         for loc in self.rect_grid_locs(rect):
@@ -311,7 +358,7 @@ class Tilemap(Component):
                     del self.physics_map[grid_pos]
             elif layer in self.grid_tiles[grid_pos]:
                 del self.grid_tiles[grid_pos][layer]
-                if not self.grid_tiles[grid_pos]:  # Remove empty dict
+                if not self.grid_tiles[grid_pos]:
                     del self.grid_tiles[grid_pos]
 
     def rect_delete(self, rect, layer=None):
@@ -334,7 +381,7 @@ class Tilemap(Component):
                                             if not self.physics_map[grid_pos]:
                                                 del self.physics_map[grid_pos]
                                 del self.grid_tiles[grid_pos][layer]
-                                if not self.grid_tiles[grid_pos]:  # Remove empty dict
+                                if not self.grid_tiles[grid_pos]:
                                     del self.grid_tiles[grid_pos]
                         else:
                             del self.grid_tiles[grid_pos]
