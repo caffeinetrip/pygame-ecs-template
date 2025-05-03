@@ -25,16 +25,14 @@ uniform float brightness = 1.2;
 uniform bool discolor = true;
 uniform float warp_amount = 0.0;
 uniform bool clip_warp = false;
-uniform float vignette_intensity = 0.7;
-uniform float vignette_opacity = 0.7;
-uniform float grain_strength = 0.06;
-uniform float desaturation = 0.5;
-uniform float flicker_intensity = 0.05;
+uniform float vignette_intensity = 0.6;
+uniform float vignette_opacity = 0.6;
+uniform float grain_strength = 0.03;
+uniform float desaturation = 0.0;
+uniform float flicker_intensity = 0.02;
 
 out vec4 f_color;
 in vec2 uv;
-
-
 
 vec2 random(vec2 uv) {
     uv = vec2(dot(uv, vec2(127.1, 311.7)), dot(uv, vec2(269.5, 183.3)));
@@ -95,23 +93,6 @@ float vignette(vec2 uv, float time) {
     float vig = uv.x * uv.y * 15.0;
     float pulse = sin(time * 0.5) * 0.03;
     return pow(vig, vignette_intensity * vignette_opacity + pulse);
-}
-
-float sega_vignette(vec2 uv) {
-    uv = uv * 2.0 - 1.0;
-    float vig = 1.0 - dot(uv, uv) * 0.45;
-    return clamp(pow(vig, 1.8), 0.0, 1.0);
-}
-
-float arcade_bars(vec2 uv) {
-    float bar_size = 0.08;
-    return (uv.y < bar_size || uv.y > 1.0 - bar_size) ? 0.0 : 1.0;
-}
-
-float dither_pattern(vec2 uv) {
-    int x = int(mod(floor(uv.x * resolution.x), 2.0));
-    int y = int(mod(floor(uv.y * resolution.y), 2.0));
-    return ((x == 0 && y == 0) || (x == 1 && y == 1)) ? 0.9 : 1.0;
 }
 
 float toGrayscale(vec3 color) {
@@ -190,14 +171,19 @@ void main() {
     float flicker = 1.0 + sin(time * 7.5) * flicker_intensity;
 
     tex.rgb *= flicker;
+
+    tex.rgb = mix(tex.rgb, pow(tex.rgb, vec3(0.95)), 0.3);
+
+    tex.rgb = mix(tex.rgb, tex.rgb * vec3(1.0, 1.05, 1.1), 0.2);
+
+    tex.rgb *= 1.05;
+
     tex.rgb = clamp(tex.rgb * brightness, 0.0, 1.0);
 
     tex.rgb *= vignette(tex_uv, time);
     tex.rgb = mix(tex.rgb, vec3(tex.r, tex.g, tex.b), 0.35);
-    tex.rgb *= 0.9;
 
     if (transition < 1.0) {
-        // Apply only darkness based on transition progress (no swirl)
         tex.rgb *= transition;
     }
 

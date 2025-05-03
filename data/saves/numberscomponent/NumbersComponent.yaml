@@ -1,7 +1,7 @@
 __class__: NumbersComponent
-__timestamp__: '2025-05-03T13:07:13.534174'
-damage: 43
+__timestamp__: '2025-05-03T19:52:07.770974'
+damage: 47
 health: 100
-mana: 9999999770
+mana: 9999999750
 max_health: 100
 max_mana: 10000000000

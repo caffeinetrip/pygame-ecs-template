@@ -18,20 +18,29 @@ class PlayerEntity(MovingObject):
         move_x = 0
         move_y = 0
 
-        if G.input.holding(pygame.K_LEFT):
+        self.max_speed = [150, 150]
+
+        if G.input.holding(pygame.K_LEFT) or G.input.holding(pygame.K_a):
             move_x -= 1
             self.direction = 'right'
             self.mirror[0] = True
-        if G.input.holding(pygame.K_RIGHT):
+            self.max_speed[1] = 100
+
+        if G.input.holding(pygame.K_RIGHT) or G.input.holding(pygame.K_d):
             move_x += 1
             self.direction = 'right'
             self.mirror[0] = False
-        if G.input.holding(pygame.K_UP):
+            self.max_speed[1] = 100
+
+        if G.input.holding(pygame.K_UP) or G.input.holding(pygame.K_w):
             move_y -= 1
             self.direction = 'top'
-        if G.input.holding(pygame.K_DOWN):
+            self.max_speed[0] = 100
+
+        if G.input.holding(pygame.K_DOWN) or G.input.holding(pygame.K_s):
             move_y += 1
             self.direction = 'down'
+            self.max_speed[0] = 100
 
         self.speed[0] = move_x * self.max_speed[0]
         self.speed[1] = move_y * self.max_speed[1]

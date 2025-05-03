@@ -18,7 +18,7 @@ WINDOW_SIZE = (1020, 660)
 DISPLAY_SIZE = (340, 220)
 FPS_CAP = 60
 TILE_SIZE = (16, 16)
-CAMERA_SLOWNESS = 1.2
+CAMERA_SLOWNESS = 5
 
 
 class Main(Game):
@@ -84,6 +84,7 @@ class Main(Game):
         self.background_surface.fill((0, 0, 0, 0))
 
         self._update_gameplay()
+        pygame.display.set_caption((str(round(G.window.fps, 1))))
 
         if G.input.pressed(pygame.K_e):
             await self._handle_action()
