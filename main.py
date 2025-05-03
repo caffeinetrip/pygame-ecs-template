@@ -2,10 +2,12 @@ import asyncio
 import pygame
 
 from util.framework.components import *
+from util.framework.core.assets.assets import AssetsComponent
 from util.framework.core.interactors.intManager import InteractorManager
 from util.framework.globals import G
-from util.framework.utils.yaml import auto_save_all, auto_load_all
-from util import CMS, CMSEntity
+from util.framework.utils.yaml import auto_load_all
+from util.framework.utils.tilemap import Tilemap
+from util.hooks import gen_hook
 
 # import interactors
 from scripts import *
@@ -14,6 +16,7 @@ from content import NumbersEntity
 WINDOW_SIZE = (1020, 660)
 DISPLAY_SIZE = (340, 220)
 FPS_CAP = 60
+TILE_SIZE = (16,16)
 CAMERA_SIZE = (800, 600)
 CAMERA_SLOWNESS = 5
 
@@ -32,6 +35,7 @@ class Main(Game):
         self.mgl = self.add_component(MGLComponent)
         self.input = self.add_component(InputComponent)
         self.mouse = self.add_component(MouseComponent)
+        self.assets = self.add_component(AssetsComponent, spritesheet_path="data/images/spritesheets")
 
         self.im = InteractorManager()
 
@@ -39,6 +43,9 @@ class Main(Game):
 
         self.window.frag_path = 'resources/shaders/shader.frag'
         self.window.render_object = self.renderer
+
+        self.tilemap = Tilemap(tile_size=TILE_SIZE)
+        self.tilemap.load('data/maps/1.pmap', spawn_hook=gen_hook())
 
         self.background_surface = pygame.Surface(DISPLAY_SIZE, pygame.SRCALPHA)
         self.display_surface = pygame.Surface(DISPLAY_SIZE, pygame.SRCALPHA)
@@ -62,11 +69,11 @@ class Main(Game):
             await G.im.trigger_encounter_end()
 
     async def game_update(self):
-        self._update_gameplay()
-
         self.display_surface.fill((255, 255, 255))
         self.ui_surface.fill((0, 0, 0, 0))
         self.background_surface.fill((0, 0, 0, 0))
+
+        self._update_gameplay()
 
         if G.input.pressed(pygame.K_e):
             await self._handle_action()
@@ -81,6 +88,14 @@ class Main(Game):
 
     def _update_gameplay(self):
         G.camera.update()
+        visible_rect = pygame.Rect(
+            self.camera[0] - 16,
+            self.camera[1] - 16,
+            self.display_surface.get_width() + 32,
+            self.display_surface.get_height() + 32
+        )
+
+        self.tilemap.renderz(visible_rect, offset=self.camera)
 
     async def _handle_action(self):
         numbers_entity = G.im.get_interactor('NumbersEntity')

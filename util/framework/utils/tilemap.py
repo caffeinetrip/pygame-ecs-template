@@ -8,7 +8,7 @@ BORDERS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1),
 
 
 def basic_tile_render(tile, offset=(0, 0), group='default'):
-    tile.e['Renderer'].blit(tile.img, (tile.raw_pos[0] + tile.offset[0] - offset[0],
+    G.render.blit(tile.img, (tile.raw_pos[0] + tile.offset[0] - offset[0],
                                        tile.raw_pos[1] + tile.offset[1] - offset[1]), z=tile.layer, group=group)
 
 
@@ -39,10 +39,10 @@ class Tile(Component):
 
     def change_id(self, tile_id):
         self.tile_id = tile_id
-        self.img = G.Assets.spritesheets[self.group]['assets'][tile_id]
-        self.config = G.Assets.spritesheets[self.group]['config'][tile_id]
-        if self.group in G.Assets.custom_tile_renderers:
-            self.render_func = G.Assets.custom_tile_renderers[self.group]
+        self.img = G.assets.spritesheets[self.group]['assets'][tile_id]
+        self.config = G.assets.spritesheets[self.group]['config'][tile_id]
+        if self.group in G.assets.custom_tile_renderers:
+            self.render_func = G.assets.custom_tile_renderers[self.group]
         self.offset = self.config['offset']
 
     def export(self):
@@ -240,9 +240,9 @@ class Tilemap(Component):
         for loc in locs:
             if layer in loc:
                 tile = loc[layer]
-                if tile.group in G.Assets.autotile_config['assignment']:
-                    assignment = G.Assets.autotile_config['assignment'][tile.group]
-                    checks = G.Assets.autotile_config['checks'][assignment]
+                if tile.group in G.assets.autotile_config['assignment']:
+                    assignment = G.assets.autotile_config['assignment'][tile.group]
+                    checks = G.assets.autotile_config['checks'][assignment]
                     neighbors = tile.neighbors(checks, handle_edge=True)
 
                     for nloc in checks:
@@ -260,7 +260,7 @@ class Tilemap(Component):
                             neighbors[nloc] = set(('none', 'notself'))
 
                     new_type = None
-                    mappings = G.Assets.autotile_config['mappings'][assignment]
+                    mappings = G.assets.autotile_config['mappings'][assignment]
 
                     for tile_type, tile_rules in mappings.items():
                         if tile_rules == 'default':
