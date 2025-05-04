@@ -5,7 +5,7 @@ from util.framework.core.component import Component
 ADJACENT_DIRS = [(1, 0), (0, 1), (-1, 0), (0, -1)]
 
 WALKABLE_TILES = [
-   'grass',
+   'walk_zone',
 ]
 
 

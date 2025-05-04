@@ -205,13 +205,11 @@ class Tilemap(Component):
         return True
 
     def is_walkable_pos(self, grid_pos, check_layer=None):
-        # Проверяем, находится ли позиция внутри карты
         if not self.in_map(grid_pos):
             return False
 
-        # Если на этой позиции нет тайлов, проверяем, является ли она внутри границ карты
         if grid_pos not in self.grid_tiles:
-            return True  # Пустое место считается проходимым, если оно внутри карты
+            return True
 
         tiles = self.grid_tiles[grid_pos]
 
@@ -220,7 +218,6 @@ class Tilemap(Component):
                 return tiles[check_layer].walkable
             return True
         else:
-            # Проверяем все слои, если хотя бы один непроходимый - возвращаем False
             for tile in tiles.values():
                 if not tile.walkable:
                     return False
@@ -468,7 +465,8 @@ class Tilemap(Component):
         for y in range(topleft[1], bottomright[1] + 1):
             for x in range(topleft[0], bottomright[0] + 1):
                 for tile in self.gridtile((x, y)).values():
-                    tile.render(offset=offset, group=group)
+                    if tile.group != 'walk_zone':
+                        tile.render(offset=offset, group=group)
 
         for tile in self.offgrid_tiles.query(rect):
             tile.render(offset=offset, group=group)

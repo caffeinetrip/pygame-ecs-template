@@ -1,0 +1,1 @@
+{"images": {"one_bullet": {"offset": [0, 0]}, "two_bullets": {"offset": [0, 0]}, "three-bullets": {"offset": [0, 0]}}, "animations": {}, "file_path": "data/images/entities/cards", "id": "cards", "centered": false, "offset": [0, 0], "colorkey": [0, 0, 0], "size": [1, 1], "group": "entity", "collide_with": [], "default": "one_bullet"}

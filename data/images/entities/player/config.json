@@ -1,0 +1,55 @@
+{
+    "uid": "player",
+    "size": [16, 16],
+    "offset": [0, 0],
+    "transparency": [0, 0, 0],
+    "centered": true,
+    "category": "entity",
+    "images": {},
+    "sequences": {
+        "idle/down": {
+            "offset": [0, 0],
+            "rate": 1.0,
+            "repeat": true,
+            "frozen": false,
+            "durations": [0.15, 0.15, 0.15, 0.15]
+        },
+        "idle/right": {
+            "offset": [0, 0],
+            "rate": 1.0,
+            "repeat": true,
+            "frozen": false,
+            "durations": [0.15, 0.15, 0.15, 0.15]
+        },
+        "idle/top": {
+            "offset": [0, 0],
+            "rate": 1.0,
+            "repeat": true,
+            "frozen": false,
+            "durations": [0.15, 0.15, 0.15, 0.15]
+        },
+        "walk/down": {
+            "offset": [0, 0],
+            "rate": 1.0,
+            "repeat": true,
+            "frozen": false,
+            "durations": [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+        },
+        "walk/right": {
+            "offset": [0, 0],
+            "rate": 1.0,
+            "repeat": true,
+            "frozen": false,
+            "durations": [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+        },
+        "walk/top": {
+            "offset": [0, 0],
+            "rate": 1.0,
+            "repeat": true,
+            "frozen": false,
+            "durations": [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+        }
+    },
+    "initial": "idle/down",
+    "resource_path": "data/images/entities/player"
+}

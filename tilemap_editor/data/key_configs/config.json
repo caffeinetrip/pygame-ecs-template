@@ -1,0 +1,6 @@
+{
+	"quit": ["button", 27],
+	"first_card": ["button", 122],
+	"second_card": ["button", 120],
+	"third_card": ["button", 99]
+}

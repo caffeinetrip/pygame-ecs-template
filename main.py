@@ -61,7 +61,7 @@ class Main(Game):
         self.renderer.add_surface('default', self.display_surface)
         self.renderer.add_surface('ui', self.ui_surface)
 
-        self.player = PlayerEntity((100, 100))
+        self.player = PlayerEntity((100, 150))
         self.object_collections.register(self.player, 'entities')
 
         self.reset()
