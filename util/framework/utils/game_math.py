@@ -63,7 +63,6 @@ def scale_mouse_pos(mouse_pos, original_size, target_size):
 
     return round(scaled_x), round(scaled_y)
 
-
 def convert_string_to_list(string):
     if not isinstance(string, str):
         raise TypeError("Input must be a string")

@@ -1,12 +1,9 @@
 import sys
-
 import pygame
-
 from .. import Component
 from ..components import RenderComponent
 from ..utils.gfx import palette_swap, clip
 from ..utils.io import recursive_file_op
-
 
 def load_font_img(path, font_color=(255, 255, 255)):
     fg_color = (255, 0, 0)
@@ -21,11 +18,9 @@ def load_font_img(path, font_color=(255, 255, 255)):
             letters.append(clip(font_img, pygame.Rect(last_x, 0, x - last_x, font_img.get_height())))
             letter_spacing.append(x - last_x)
             last_x = x + 1
-        x += 1
     for letter in letters:
         letter.set_colorkey(bg_color)
     return letters, letter_spacing, font_img.get_height()
-
 
 class TextComponent(Component):
     def __init__(self, path=None):
@@ -43,7 +38,6 @@ class TextComponent(Component):
     def __getitem__(self, key):
         return self.fonts[key]
 
-
 class PreppedText:
     def __init__(self, text, size, font):
         self.font = font
@@ -52,7 +46,6 @@ class PreppedText:
         self.height = size[1]
         self.size = size
 
-    # maybe add caching?
     def render(self, surf, loc):
         self.font.render(self.text, surf, loc)
 
@@ -61,7 +54,6 @@ class PreppedText:
 
     def __str__(self):
         return ('<PreppedText:' + str(self.width) + 'x' + str(self.height) + '> ' + self.text).replace('\n', '\\n')
-
 
 class Font:
     def __init__(self, path, color=(255, 255, 255)):
@@ -102,16 +94,16 @@ class Font:
         words = []
         word_width = 0
         word = ''
-        for i, char in enumerate(text):
+        for char in text:
             if char not in ['\n', ' ']:
-                word_width += self.letter_spacing[self.font_order.index(char)] + self.base_spacing
+                word_width += self.letter_spacing[self.font_map[char]] + self.base_spacing
                 word += char
             else:
                 words.append((word, word_width))
                 words.append((char, self.space_width + self.base_spacing if char == ' ' else 0))
                 word = ''
                 word_width = 0
-        if word != '':
+        if word:
             words.append((word, word_width))
 
         x = 0
@@ -133,15 +125,13 @@ class Font:
                     processed_text += word[0]
                 max_width = max(max_width, x)
 
-        return PreppedText(processed_text, (max_width, self.line_height + (self.line_height + self.line_spacing) * y),
-                           self)
+        return PreppedText(processed_text, (max_width, self.line_height + (self.line_height + self.line_spacing) * y), self)
 
     def renderz(self, text, loc, line_width=0, color=None, offset=(0, 0), group='default', z=0):
         self.render(RenderComponent, text, (loc[0] - offset[0], loc[1] - offset[1]), line_width=line_width,
                     color=color, blit_kwargs={'group': group, 'z': z})
 
-    def renderzb(self, text, loc, line_width=0, color=None, bgcolor=None, offset=(0, 0), group='default', z=0,
-                 hide_chars=0):
+    def renderzb(self, text, loc, line_width=0, color=None, bgcolor=None, offset=(0, 0), group='default', z=0):
         for o in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             self.renderz(text, (loc[0] + o[0], loc[1] + o[1]), line_width=line_width, color=bgcolor, offset=offset,
                          group=group, z=z - 1)

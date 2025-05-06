@@ -467,6 +467,7 @@ class Game(pygpen.PygpenGame):
                 self.save_state()
 
         # Scale display and render
+        
         self.e['Window'].screen.blit(
             pygame.transform.scale(self.display, self.e['Window'].screen.get_size()),
             (0, 0)
